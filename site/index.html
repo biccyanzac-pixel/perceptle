@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Perceptle</title>
+    <meta name="description" content="Daily perception olympics: five quick estimation tasks. Count, angles, areas, midpoints and more. No knowledge needed, just eyes and instinct." />
+    <meta name="color-scheme" content="dark light" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%91%81%EF%B8%8F%3C/text%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="masthead">
+        <a class="wordmark" href="/jacob.gg/">jacob<span>.gg</span></a>
+      </header>
+
+      <section class="card" id="card">
+        <div class="card-top">
+          <span class="eyebrow" id="daynum">Perceptle</span>
+          <span class="eyebrow countdown" id="countdown"></span>
+        </div>
+
+        <div id="intro">
+          <p class="eyebrow challenge-label" id="level">Today</p>
+          <h1 class="prompt">Perceptle: the daily perception olympics</h1>
+          <p class="riddle-note">
+            Five quick estimation tasks, a few seconds each. No knowledge needed, just your eyes and instinct.
+            Each one scores up to 100 for precision.
+          </p>
+          <ol class="chips" id="today-tasks" aria-label="Today's tasks"></ol>
+          <p class="attempts-note" id="special-note" hidden>✨ Sunday's illusion special: one task hides a classic optical illusion.</p>
+
+          <form class="play" id="start-form">
+            <label class="field" id="name-field">
+              <span class="label">Your name</span>
+              <input id="name" type="text" maxlength="20" autocomplete="nickname" placeholder="e.g. jacob" required />
+            </label>
+            <p class="playing-as" id="playing-as" hidden></p>
+            <p class="error" id="start-error" role="alert" hidden></p>
+            <button class="submit" id="start" type="submit"><span id="start-label">Start</span></button>
+            <p class="fineprint">About a minute. The screen locks while you play. Leaving mid-task scores that task 0.</p>
+          </form>
+        </div>
+
+        <div class="attempts" id="done" hidden>
+          <p class="eyebrow" id="daily-score-caption">Today's score</p>
+          <p class="score" id="daily-score">0</p>
+          <p class="out-of" id="out-of">out of 500</p>
+          <ol class="bars" id="bars"></ol>
+          <button class="submit share" id="share" type="button">Share result</button>
+          <p class="fineprint" id="share-done" hidden>Copied to clipboard.</p>
+          <p class="attempts-done">Come back tomorrow for five new tasks. They get harder from Monday to Saturday.</p>
+
+          <div class="practice" id="practice" hidden>
+            <p class="eyebrow">Practice</p>
+            <p class="archive-note">Unlimited random tasks. Not on the leaderboard.</p>
+            <div class="practice-row">
+              <select id="practice-type" aria-label="Task type"><option value="">Any task</option></select>
+              <select id="practice-day" aria-label="Difficulty">
+                <option value="1">Monday (easiest)</option>
+                <option value="2">Tuesday</option>
+                <option value="3" selected>Wednesday</option>
+                <option value="4">Thursday</option>
+                <option value="5">Friday</option>
+                <option value="6">Saturday (hardest)</option>
+                <option value="0">Sunday illusions</option>
+              </select>
+              <button class="archive-browse" id="practice-start" type="button">Practise</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card board" id="board" hidden>
+        <div class="card-top">
+          <h2 class="eyebrow" id="board-title">Today's leaderboard</h2>
+          <span class="eyebrow" id="players"></span>
+        </div>
+        <ol class="rows" id="rows"></ol>
+        <p class="board-empty" id="board-empty" hidden>Nobody has played yet today. Be the first.</p>
+        <p class="board-note" id="board-note" hidden></p>
+      </section>
+
+      <section class="card archive" id="archive">
+        <div class="card-top">
+          <h2 class="eyebrow">Archive: replay a past day</h2>
+        </div>
+        <p class="archive-note">Replays go on a separate "played later" board and never change a day's original results.</p>
+        <div class="archive-picker">
+          <button type="button" class="archive-browse" id="archive-browse">Browse archive</button>
+        </div>
+        <ul class="archive-list" id="archive-list" hidden></ul>
+      </section>
+
+      <footer class="footer">
+        <p>New tasks every day at midnight UTC, the same for everyone. Ties go to whoever finished first.</p>
+        <p>Every task is generated in your browser from the date. <a href="calibrate.html">Calibration</a> ·
+          <a href="dev/determinism.html">Same tasks on this device?</a></p>
+      </footer>
+    </main>
+
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>

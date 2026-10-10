@@ -1,0 +1,12 @@
+name = "perceptle-leaderboard"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "perceptle-leaderboard"
+database_id = "d1477fe6-3dc4-47e2-9648-3f81c806d211"
+
+# Browser origins allowed to call this API (comma-separated).
+[vars]
+ALLOWED_ORIGINS = "https://biccyanzac-pixel.github.io"

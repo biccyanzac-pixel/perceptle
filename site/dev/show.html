@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Perceptle task viewer</title>
+  <meta name="color-scheme" content="dark light">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <!-- Dev page: one task from a seed. ?type=angle&d=0.4&seed=abc&illusion=1 (used for screenshots) -->
+  <script type="module">
+    import { Arena } from '../js/arena.js';
+    import { practiceTask } from '../js/plan.js';
+    const q = new URLSearchParams(location.search);
+    const task = practiceTask(q.get('seed') || String(Date.now()), {
+      type: q.get('type') || undefined, difficulty: Number(q.get('d') ?? 0.4), illusion: q.get('illusion') === '1',
+    });
+    const arena = new Arena({ closable: true });
+    arena.open();
+    arena.setPips([undefined, undefined, undefined, undefined, undefined], 0);
+    for (;;) {
+      const { answer, result } = await arena.play(task, { label: 'Viewer' });
+      await arena.reveal(task, answer, result, { next: 'Again' });
+    }
+  </script>
+</body>
+</html>
