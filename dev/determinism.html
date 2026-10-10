@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Perceptle determinism check</title>
+  <style>
+    :root { --bg: #f6f7fb; --text: #15171f; --good: #1f9d6b; --bad: #c93f3f; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #0b0c10; --text: #edeef2; --good: #57d9a3; --bad: #ff7a7a; } }
+    body { margin: 0; padding: 24px 16px; background: var(--bg); color: var(--text); font: 16px/1.5 system-ui, sans-serif; }
+    code { word-break: break-all; }
+    .ok { color: var(--good); font-weight: 700; } .bad { color: var(--bad); font-weight: 700; }
+  </style>
+</head>
+<body>
+  <h1>Determinism check</h1>
+  <p>Generates the first 400 days of Perceptle tasks (and their layouts) on this device and compares them with the
+    reference. If it says <b>identical</b>, this device gets exactly the same tasks as everyone else.</p>
+  <p id="out">Working…</p>
+  <script type="module">
+    import { rangeDigest } from '../js/digest.js';
+    const out = document.getElementById('out');
+    const exp = await (await fetch('expected.json', { cache: 'no-cache' })).json();
+    const t0 = performance.now();
+    const r = rangeDigest(exp.from, exp.n);
+    const ms = Math.round(performance.now() - t0);
+    const ok = r.all === exp.all;
+    out.innerHTML = `<span class="${ok ? 'ok' : 'bad'}">${ok ? 'Identical ✓' : 'DIFFERENT ✗'}</span><br>
+      This device: <code>${r.all}</code><br>Reference: <code>${exp.all}</code><br>
+      ${exp.n} days from ${exp.from} in ${ms} ms · ${navigator.userAgent}`;
+    window.__result = { ...r, ok, expected: exp.all };
+  </script>
+</body>
+</html>
