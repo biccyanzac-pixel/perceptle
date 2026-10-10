@@ -67,7 +67,8 @@ function render() {
   const plan = dayPlan(day);
   const w = weekday(day);
   $('daynum').textContent = `Perceptle #${dayNumber(day)}${late ? ` · ${day} (played later)` : ''}`;
-  $('level').textContent = `${WEEKDAYS[w]} · ${LEVELS[w]}`;
+  if (window.JGG) $('level').replaceChildren(JGG.levelChip(day));
+  else $('level').textContent = `${WEEKDAYS[w]} · ${LEVELS[w]}`;
   const n = store.doneCount(day, late);
   if (n >= TASKS_PER_DAY) {
     show('intro', false);
@@ -82,8 +83,8 @@ function render() {
     const name = api.savedName();
     $('name').value = name;
     show('name-field', !name);
-    $('playing-as').textContent = name ? `Playing as ${name}.` : '';
-    show('playing-as', !!name);
+    if (window.JGG) JGG.playingAs({ mount: $('playing-as'), name, onChange: (n) => { api.saveName(n); $('name').value = n; } });
+    else { $('playing-as').textContent = name ? `Playing as ${name}.` : ''; show('playing-as', !!name); }
   }
   renderBoard();
 }
