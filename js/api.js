@@ -47,8 +47,8 @@ export function savedName() { try { return localStorage.getItem(NAME_KEY) || '';
 export function saveName(n) { try { localStorage.setItem(NAME_KEY, n); } catch { /* ignore */ } }
 
 /** Record one task's answer (null = abandoned). The server regenerates the day's task and scores it itself. */
-export async function submitRound({ day, round, answer, name }) {
-  const body = { day, round, answer, name };
+export async function submitRound({ day, round, answer, ms, name }) {
+  const body = { day, round, answer, ms, name };
   let s = await session();
   try { return await call('/api/round', { ...s, ...body }); }
   catch (e) {

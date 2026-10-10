@@ -891,6 +891,7 @@ a { color: var(--accent); }
   --fill: #3a3e4b;
   --shade: #7c8cff;
   --faint: #3b3e48;
+  --empty: #5a5f70;
   --ok: #f0b35a;
 }
 
@@ -901,6 +902,7 @@ a { color: var(--accent); }
     --fill: #d4d7e2;
     --shade: #4b5bdc;
     --faint: #d0d3dc;
+    --empty: #ffffff;
     --ok: #c17a12;
   }
 }
@@ -1140,3 +1142,6 @@ html.locked, html.locked body {
 @media (prefers-reduced-motion: reduce) {
   .bar-fill, .stage-overlay { animation: none; }
 }
+
+.arena-result { flex-wrap: wrap; row-gap: 0; }
+.arena-breakdown { flex-basis: 100%; text-align: center; font-size: 0.78rem; color: var(--muted); font-variant-numeric: tabular-nums; }

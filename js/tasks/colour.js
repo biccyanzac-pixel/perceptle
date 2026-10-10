@@ -5,7 +5,7 @@
 import { TAU } from '../dmath.js';
 import { deltaE, hex, oklabToRgb, oklch, rgbToOklab } from '../colour.js';
 import { lerp } from '../geometry.js';
-import { CURVES, curveScore } from '../scoring.js';
+import { CURVES, curveScore, round2 } from '../scoring.js';
 
 export const MEMORY_MS = 1500;
 
@@ -54,9 +54,9 @@ export default {
   error: (p, a) => deltaE(p.palette[a], p.palette[p.answer]),
 
   score(p, a) {
-    if (a === null || !this.validate(a) || a >= p.palette.length) return { points: 0, err: null };
+    if (a === null || !this.validate(a) || a >= p.palette.length) return { acc: 0, err: null, parts: [] };
     const err = this.error(p, a);
-    return { points: curveScore(err, CURVES.colour), err };
+    return { acc: round2(curveScore(err, CURVES.colour)), err, parts: [{ curve: 'colour', err }] };
   },
 
   truthText: () => 'the match',

@@ -3,7 +3,7 @@
 // so a wrong pick costs exactly as much as it should and no separate penalty is needed.
 import { log } from '../dmath.js';
 import { area, bbox, blob, lerp, transform } from '../geometry.js';
-import { CURVES, curveScore } from '../scoring.js';
+import { CURVES, curveScore, round2 } from '../scoring.js';
 
 const ARRANGEMENTS = [
   [[0.27, 0.5], [0.73, 0.5]],
@@ -59,9 +59,9 @@ export default {
   },
 
   score(p, a) {
-    if (a === null || !this.validate(a)) return { points: 0, err: null };
+    if (a === null || !this.validate(a)) return { acc: 0, err: null, parts: [] };
     const err = this.error(p, a);
-    return { points: curveScore(err, CURVES.area), err };
+    return { acc: round2(curveScore(err, CURVES.area)), err, parts: [{ curve: 'area', err }] };
   },
 
   truthPct: (p) => Math.round((p.ratio - 1) * 100),

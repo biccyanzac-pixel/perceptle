@@ -1,9 +1,10 @@
-// Proportion: what percentage of the shape is shaded? Scored on percentage-point error.
+// Proportion: what percentage of the shape is coloured in? Scored on percentage-point error.
+// The reveal pours both parts into a pie of the same area, so you can see the split.
 // One straight cut on easy days; a wedge (two cuts) or two separate strips on hard days, and hard days avoid
 // the easy-to-judge 25/50/75%.
 import { cos, roundTo, sin, TAU } from '../dmath.js';
 import { area, blob, clipHalfPlane, lerp, offMultiple } from '../geometry.js';
-import { CURVES, curveScore } from '../scoring.js';
+import { CURVES, curveScore, round2 } from '../scoring.js';
 
 /** Offset c so that the part of `poly` with n·x <= c has `frac` of `total` area. Area grows with c. */
 function solveCut(poly, nx, ny, frac, total) {
@@ -30,7 +31,7 @@ export default {
   emoji: '🥧',
   illusionCapable: false,
 
-  prompt: () => 'What % is shaded?',
+  prompt: () => 'What % of the shape is coloured in?',
 
   generate(rng, d) {
     const shape = blob(rng, {
@@ -78,11 +79,11 @@ export default {
   error: (p, a) => Math.abs(a - p.truth),
 
   score(p, a) {
-    if (a === null || !this.validate(a)) return { points: 0, err: null };
+    if (a === null || !this.validate(a)) return { acc: 0, err: null, parts: [] };
     const err = this.error(p, a);
-    return { points: curveScore(err, CURVES.proportion), err };
+    return { acc: round2(curveScore(err, CURVES.proportion)), err, parts: [{ curve: 'proportion', err }] };
   },
 
-  truthText: (p) => `${roundTo(p.truth, 1)}% shaded`,
+  truthText: (p) => `${roundTo(p.truth, 1)}% coloured`,
   answerText: (p, a) => (a === null ? 'no answer' : `you said ${a}%`),
 };

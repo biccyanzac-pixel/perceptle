@@ -5,7 +5,7 @@
 // generator, gate the change on a future date (if (day >= '2027-01-01') ...) and add golden days after it.
 import { dayDifficulty, dayNumber, weekday } from './daily.js';
 import { rngFor } from './rng.js';
-import { TASKS_PER_DAY } from './scoring.js';
+import { TASKS_PER_DAY, speedFactor, withSpeed } from './scoring.js';
 import { POOLS, TASKS } from './tasks/index.js';
 
 export function poolFor(day) {
@@ -41,7 +41,12 @@ export function practiceTask(seed, { type, difficulty = 0.4, illusion = false, t
   return { type: t, slot: 0, illusion, params: TASKS[t].generate(rngFor('practice', seed, t), difficulty, { illusion }) };
 }
 
-/** Score one answer (null = skipped or abandoned) for a task. */
-export function scoreTask(task, answer) {
-  return TASKS[task.type].score(task.params, answer);
+/**
+ * Score one answer (null = abandoned). `ms` = time from the task appearing to the final answer.
+ * Returns { points (2 dp), acc (accuracy 0-100), speed (0-1, or null if the type has none), err, parts }.
+ */
+export function scoreTask(task, answer, ms) {
+  const r = TASKS[task.type].score(task.params, answer);
+  const hasSpeed = task.type !== 'timing';
+  return { ...r, points: answer === null ? 0 : withSpeed(task.type, r.acc, ms), speed: hasSpeed ? speedFactor(task.type, ms) : null };
 }
