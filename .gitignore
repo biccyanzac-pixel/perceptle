@@ -3,3 +3,4 @@ node_modules/
 worker/node_modules/
 tools/results/
 *.log
+backups/
