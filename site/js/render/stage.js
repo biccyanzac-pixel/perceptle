@@ -6,7 +6,7 @@ export function themeColours() {
   const v = (n) => cs.getPropertyValue(n).trim();
   return {
     bg: v('--stage'), ink: v('--ink'), muted: v('--muted'), accent: v('--accent'), good: v('--good'),
-    bad: v('--bad'), fill: v('--fill'), shade: v('--shade'), faint: v('--faint'),
+    bad: v('--bad'), fill: v('--fill'), shade: v('--shade'), faint: v('--faint'), empty: v('--empty'),
   };
 }
 
@@ -47,8 +47,30 @@ export class Stage {
     this.redraw();
   }
 
-  /** Set what to draw; it's called again on resize. */
-  draw(fn) { this.drawFn = fn; this.redraw(); }
+  /** Set what to draw; it's called again on resize. Stops any running animation. */
+  draw(fn) { this.animId = (this.animId || 0) + 1; this.drawFn = fn; this.redraw(); }
+
+  /**
+   * Animate for `ms`: fn(stage, t) with t eased 0..1 each frame, then it stays at t = 1 (and redraws on resize).
+   * Resolves when done or when something else is drawn. Reduced-motion users jump straight to the end.
+   */
+  animate(ms, fn) {
+    const id = (this.animId = (this.animId || 0) + 1);
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const t0 = performance.now();
+    const ease = (x) => (x < 0.5 ? 2 * x * x : 1 - ((-2 * x + 2) ** 2) / 2);
+    return new Promise((resolve) => {
+      const step = () => {
+        if (this.animId !== id) { resolve(false); return; }
+        const raw = reduce ? 1 : Math.min(1, (performance.now() - t0) / ms);
+        const t = ease(raw);
+        this.drawFn = (s) => fn(s, t, raw);
+        this.redraw();
+        if (raw < 1) requestAnimationFrame(step); else resolve(true);
+      };
+      step();
+    });
+  }
 
   redraw() {
     const { ctx } = this;

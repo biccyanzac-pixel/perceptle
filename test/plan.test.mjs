@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { EPOCH, addDays, dayDifficulty, weekday } from '../site/js/daily.js';
 import { dayDigest, displayData } from '../site/js/digest.js';
-import { area, pointInPolygon } from '../site/js/geometry.js';
+import { area } from '../site/js/geometry.js';
 import { dayPlan, practiceTask } from '../site/js/plan.js';
 import { TASKS } from '../site/js/tasks/index.js';
 
@@ -44,7 +44,7 @@ test('every day: 5 different types; Sunday has exactly one illusion special; dif
   for (const t of Object.keys(TASKS)) assert.ok(counts[t] > DAYS.length * 0.45 && counts[t] < DAYS.length * 0.8, `${t}: ${counts[t]}`);
 });
 
-test('count: 20-400 dots, laid out without overlaps, inside the stage, exactly n', () => {
+test('count: 20-400 dots in 2-3 kinds, laid out without overlaps, inside the stage, exactly n, true %', () => {
   for (let s = 0; s < 60; s++) {
     const d = (s % 6) / 5;
     const t = practiceTask(s, { type: 'count', difficulty: d, illusion: s % 7 === 0 });
@@ -52,6 +52,9 @@ test('count: 20-400 dots, laid out without overlaps, inside the stage, exactly n
     assert.ok(p.n >= 20 && p.n <= 400, String(p.n));
     const { dots } = TASKS.count.layout(p);
     assert.equal(dots.length, p.n);
+    assert.equal(p.counts.reduce((a, b) => a + b, 0), p.n);
+    assert.equal(dots.filter((q) => q.cat === 0).length, p.counts[0]);
+    assert.ok(Math.abs(p.pct - (100 * p.counts[0]) / p.n) < 0.01 && p.counts.every((c) => c >= 1));
     for (let i = 0; i < dots.length; i++) {
       const a = dots[i];
       assert.ok(a.x > 0.02 && a.x < 0.98 && a.y > 0.02 && a.y < 0.98);
@@ -71,8 +74,8 @@ test('angle, area, midpoint, proportion, length, timing, colour: parameters in r
   for (let s = 0; s < 300; s++) {
     const d = (s % 6) / 5, illusion = s % 5 === 0;
     const a = practiceTask(s, { type: 'angle', difficulty: d, illusion }).params;
-    assert.ok(a.angle >= 9 && a.angle <= 331, `angle ${a.angle}`);
-    for (const [x, y] of [[a.vx, a.vy]]) assert.ok(x > 0.05 && x < 0.95 && y > 0.05 && y < 0.95);
+    assert.ok(a.angle >= 10 && a.angle <= 170, `angle ${a.angle}`);
+    assert.ok(a.tilt >= 0 && a.tilt <= 65 && (d < 0.15 || a.tilt >= 15));
 
     const ar = practiceTask(s, { type: 'area', difficulty: d, illusion }).params;
     assert.ok(ar.ratio > 1.05 && ar.ratio < 1.91, `ratio ${ar.ratio}`);
@@ -80,17 +83,23 @@ test('angle, area, midpoint, proportion, length, timing, colour: parameters in r
     for (const poly of ar.polys) for (const [x, y] of poly) assert.ok(x > 0 && x < 1 && y > 0 && y < 1);
 
     const m = practiceTask(s, { type: 'midpoint', difficulty: d, illusion }).params;
-    if (m.sub === 'centre') assert.ok(pointInPolygon(m.truth[0], m.truth[1], m.poly) || true);
-    assert.ok(m.truth.every((v) => v > 0.05 && v < 0.95));
+    if (m.sub === 'centre') assert.ok(m.truth.every((v) => v > 0.05 && v < 0.95));
+    else {
+      assert.ok(m.pts.every(([x, y]) => x >= 0.06 && x <= 0.94 && y >= 0.06 && y <= 0.94));
+      assert.ok(m.cum[0] === 0 && Math.abs(m.cum.at(-1) - 1) < 1e-12 && m.cum.every((c, i) => i === 0 || c > m.cum[i - 1]));
+    }
 
     const pr = practiceTask(s, { type: 'proportion', difficulty: d }).params;
     assert.ok(pr.truth > 5 && pr.truth < 95, `proportion ${pr.truth}`);
 
     const l = practiceTask(s, { type: 'length', difficulty: d, illusion }).params;
-    const Ls = l.segs.map((g) => g.L);
+    const Ls = l.lines.map((g) => g.L);
     assert.equal(Math.max(...Ls), Ls[l.longest]);
-    assert.equal(new Set(Ls).size, 3);
-    for (const g of l.segs) assert.ok([...g.a, ...g.b].every((v) => v > 0.03 && v < 0.97));
+    assert.equal(new Set(Ls).size, Ls.length);
+    assert.equal(Ls.length, d < 0.35 ? 4 : d < 0.7 ? 5 : 6);
+    const sorted = [...Ls].sort((x, y) => y - x);
+    assert.ok(sorted[1] / sorted[0] < 1 - (d >= 0.7 ? 0.02 : 0.05), 'runner-up clearly shorter');
+    for (const g of l.lines) assert.ok(g.pts.every(([x, y]) => x > 0.02 && x < 0.98 && y > 0.02 && y < 0.98));
 
     const tm = practiceTask(s, { type: 'timing', difficulty: d, illusion }).params;
     assert.ok(tm.seconds >= 3 && tm.seconds <= 9);

@@ -5,7 +5,7 @@ import { Stage } from './render/stage.js';
 import { RENDERERS } from './render/tasks.js';
 import { TASKS } from './tasks/index.js';
 import { scoreTask } from './plan.js';
-import { scoreBlock } from './scoring.js';
+import { fmt2, scoreBlock } from './scoring.js';
 
 const MAX_STAGE = 620;
 const block = (e) => e.preventDefault();
@@ -98,22 +98,25 @@ export class Arena {
     this.stage.clearHandlers();
     this.controls.clear();
     this.fit();
+    const t0 = performance.now();
     const answer = await RENDERERS[task.type].run({
       stage: this.stage, controls: this.controls, task, prompt: (t) => { this.prompt.textContent = t; },
     });
     this.stage.clearHandlers();
     this.controls.clear();
-    return { answer, result: scoreTask(task, answer) };
+    const ms = Math.round(performance.now() - t0);
+    return { answer, ms, result: scoreTask(task, answer, ms) };
   }
 
   /** The true answer and the points, then wait for Next. */
   async reveal(task, answer, result, { next = 'Next →' } = {}) {
     const def = TASKS[task.type];
-    RENDERERS[task.type].reveal({ stage: this.stage, task, answer });
+    RENDERERS[task.type].reveal({ stage: this.stage, task, answer }); // may animate; Next works straight away
     this.prompt.textContent = `${def.truthText(task.params)[0].toUpperCase()}${def.truthText(task.params).slice(1)} · ${def.answerText(task.params, answer)}`;
     this.result.replaceChildren(
-      el('span', { class: `arena-points ${result.points >= 60 ? 'good' : result.points >= 30 ? 'ok' : 'bad'}`, text: String(result.points) }),
-      el('span', { class: 'arena-out-of', text: '/ 100' }));
+      el('span', { class: `arena-points ${result.points >= 60 ? 'good' : result.points >= 30 ? 'ok' : 'bad'}`, text: fmt2(result.points) }),
+      el('span', { class: 'arena-out-of', text: '/ 100' }),
+      el('span', { class: 'arena-breakdown', text: result.speed === null ? 'accuracy only' : `accuracy ${fmt2(result.acc)} · speed ${Math.round(result.speed * 100)}%` }));
     this.result.classList.add('shown');
     await this.controls.button(next).done;
   }

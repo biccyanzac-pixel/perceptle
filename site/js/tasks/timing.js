@@ -3,7 +3,7 @@
 // that breaks counting; Sunday's special flickers, which makes time feel longer (filled-duration illusion).
 import { lerp } from '../geometry.js';
 import { roundTo } from '../dmath.js';
-import { CURVES, curveScore } from '../scoring.js';
+import { CURVES, curveScore, round2 } from '../scoring.js';
 
 export default {
   type: 'timing',
@@ -35,9 +35,9 @@ export default {
   error: (p, a) => Math.abs(a / 1000 - p.seconds) / p.seconds,
 
   score(p, a) {
-    if (a === null || !this.validate(a)) return { points: 0, err: null };
+    if (a === null || !this.validate(a)) return { acc: 0, err: null, parts: [] };
     const err = this.error(p, a);
-    return { points: curveScore(err, CURVES.timing), err };
+    return { acc: round2(curveScore(err, CURVES.timing)), err, parts: [{ curve: 'timing', err }] };
   },
 
   truthText: (p) => `${p.seconds} s`,

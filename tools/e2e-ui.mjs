@@ -7,6 +7,7 @@ import { chromium } from 'playwright-core';
 import { todayKey } from '../site/js/daily.js';
 import { dayPlan, practiceTask } from '../site/js/plan.js';
 import { centroid } from '../site/js/geometry.js';
+import { pointAt } from '../site/js/tasks/midpoint.js';
 import { serve } from './serve.mjs';
 
 const API = process.env.API || 'http://127.0.0.1:8821';
@@ -31,7 +32,7 @@ async function answer(page, task, exact = true) {
   const p = task.params;
   const type = async (n) => { await page.keyboard.type(String(n)); await page.keyboard.press('Enter'); };
   switch (task.type) {
-    case 'count': return type(exact ? p.n : Math.round(p.n * 1.5));
+    case 'count': await type(exact ? p.n : Math.round(p.n * 1.5)); return type(Math.round(p.pct));
     case 'angle': return type(exact ? Math.round(p.angle) : Math.round(p.angle) + 20);
     case 'proportion': return type(exact ? Math.round(p.truth) : Math.min(100, Math.round(p.truth) + 25));
     case 'area': {
@@ -40,13 +41,14 @@ async function answer(page, task, exact = true) {
       return type(Math.round((p.ratio - 1) * 100));
     }
     case 'midpoint': {
-      await tapStage(page, p.truth[0] + (exact ? 0 : 0.1), p.truth[1]);
+      const [x, y] = p.sub === 'noodle' ? pointAt(p, exact ? 0.5 : 0.65) : [p.truth[0] + (exact ? 0 : 0.1), p.truth[1]];
+      await tapStage(page, x, y);
       return page.click('.ctl-btn');
     }
     case 'length': {
-      const i = exact ? p.longest : (p.longest + 1) % 3;
-      const g = p.segs[i];
-      await tapStage(page, (g.a[0] + g.b[0]) / 2, (g.a[1] + g.b[1]) / 2);
+      const i = exact ? p.longest : (p.longest + 1) % p.lines.length;
+      const [x, y] = p.lines[i].pts[Math.floor(p.lines[i].pts.length / 2)];
+      await tapStage(page, x, y);
       return page.click('.ctl-btn');
     }
     case 'timing': {
@@ -100,7 +102,7 @@ async function playDay(page, tag, shots) {
   }
   await page.waitForSelector('#done:not([hidden])');
   const totalShown = Number(await page.textContent('#daily-score'));
-  check(`${tag} total is the sum of the tasks`, totalShown === expected.reduce((a, b) => a + b, 0), String(totalShown));
+  check(`${tag} total is the sum of the tasks`, Math.abs(totalShown - expected.reduce((a, b) => a + b, 0)) < 0.005, String(totalShown));
   check(`${tag} page unlocked after the game`, !(await page.evaluate(() => document.documentElement.classList.contains('locked'))));
   if (shots) await page.screenshot({ path: `tools/results/${tag}-4-done.png`, fullPage: true });
   return totalShown;
@@ -124,7 +126,7 @@ if (useApi) {
   await phone.reload();
   await phone.waitForSelector('#rows .row');
   const board = await phone.$$eval('#rows .row', (rs) => rs.map((r) => r.textContent));
-  check('leaderboard shows the player with the same total the browser showed', board.some((t) => t.includes('Tester phone') && t.endsWith(String(scoreP))), JSON.stringify(board));
+  check('leaderboard shows the player with the same total the browser showed', board.some((t) => t.includes("Tester phone") && t.endsWith(scoreP.toFixed(2))), JSON.stringify(board));
 }
 await phone.reload();
 await phone.waitForSelector('#done:not([hidden])');

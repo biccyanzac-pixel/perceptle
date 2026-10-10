@@ -5,7 +5,7 @@ import { Arena } from './arena.js';
 import { WEEKDAYS, EPOCH, addDays, dayNumber, msUntilNextUtcDay, todayKey, weekday, weekdayDifficulty } from './daily.js';
 import { dayPlan, practiceTask } from './plan.js';
 import { freshSeed } from './rng.js';
-import { MAX_TOTAL, TASKS_PER_DAY, scoreBlock } from './scoring.js';
+import { MAX_TOTAL, TASKS_PER_DAY, fmt2, round2, scoreBlock } from './scoring.js';
 import * as store from './storage.js';
 import { TASKS } from './tasks/index.js';
 
@@ -30,7 +30,7 @@ function el(tag, props = {}, ...children) {
 }
 const show = (id, on = true) => { $(id).hidden = !on; };
 const pad = (n) => String(n).padStart(2, '0');
-const total = (rounds) => rounds.reduce((a, r) => a + (r?.points || 0), 0);
+const total = (rounds) => round2(rounds.reduce((a, r) => a + (r?.points || 0), 0));
 
 function tickCountdown() {
   const s = Math.floor(msUntilNextUtcDay() / 1000);
@@ -47,14 +47,14 @@ function settleAbandoned(day, late) {
   for (let i = 0; i < TASKS_PER_DAY; i++) {
     if (p.started[i] && !p.rounds[i] && i === store.doneCount(day, late)) {
       store.saveRound(day, late, i, { type: plan.tasks[i].type, answer: null, points: 0, err: null, abandoned: true });
-      submit(day, i, null);
+      submit(day, i, null, null);
     }
   }
 }
 
-function submit(day, round, answer) {
+function submit(day, round, answer, ms) {
   if (!api.enabled()) return;
-  api.submitRound({ day, round, answer, name: api.savedName() })
+  api.submitRound({ day, round, answer, ms, name: api.savedName() })
     .then(() => renderBoard())
     .catch((e) => { $('board-note').textContent = `Couldn't save to the leaderboard: ${e.message}`; show('board-note', true); });
 }
@@ -102,10 +102,10 @@ async function play() {
       const task = plan.tasks[i];
       arena.setPips(Array.from({ length: TASKS_PER_DAY }, (_, j) => scores[j]), i);
       store.markStarted(day, late, i);
-      const { answer, result } = await arena.play(task, { label: `${i + 1}/${TASKS_PER_DAY}` });
+      const { answer, ms, result } = await arena.play(task, { label: `${i + 1}/${TASKS_PER_DAY}` });
       scores[i] = result.points;
-      store.saveRound(day, late, i, { type: task.type, answer, points: result.points, err: result.err });
-      submit(day, i, answer);
+      store.saveRound(day, late, i, { type: task.type, answer, ms, points: result.points, acc: result.acc, err: result.err });
+      submit(day, i, answer, ms);
       arena.setPips(Array.from({ length: TASKS_PER_DAY }, (_, j) => scores[j]), i);
       await arena.reveal(task, answer, result, { next: i + 1 < TASKS_PER_DAY ? 'Next →' : 'See results →' });
     }
@@ -122,16 +122,18 @@ function renderDone() {
   const rounds = store.progress(day, late).rounds;
   show('done', true);
   $('daily-score-caption').textContent = late ? `Your replay of ${day}` : "Today's score";
-  $('daily-score').textContent = total(rounds);
+  $('daily-score').textContent = fmt2(total(rounds));
   $('out-of').textContent = `out of ${MAX_TOTAL}`;
   $('bars').replaceChildren(...rounds.map((r) => {
     const t = TASKS[r.type];
     return el('li', { class: 'bar-row' },
       el('span', { class: 'bar-label', text: `${t.emoji} ${t.name}` }),
       el('span', { class: 'bar-track' }, el('span', { class: `bar-fill ${r.points >= 60 ? 'good' : r.points >= 30 ? 'ok' : 'bad'}`, style: `width:${r.points}%` })),
-      el('span', { class: 'bar-score', text: r.abandoned ? '0 (left)' : String(r.points) }));
+      el('span', { class: 'bar-score', text: r.abandoned ? '0 (left)' : fmt2(r.points) }));
   }));
   show('share-done', false);
+  // jacob.gg shared kit: 'rate today's game' (fails soft if the hub is down or the kit didn't load)
+  if (!late && window.JGG?.rate) window.JGG.rate({ game: 'perceptle', day, mount: $('rate') });
   const unlocked = store.doneCount(todayKey(), false) >= TASKS_PER_DAY;
   show('practice', unlocked);
 }
@@ -141,7 +143,7 @@ function shareText() {
   const rounds = store.progress(day, late).rounds;
   const best = rounds.reduce((b, r) => (r.points > b.points ? r : b), rounds[0]);
   const streak = late ? 0 : store.streak(todayKey(), addDays, TASKS_PER_DAY);
-  return `👁️ Perceptle #${dayNumber(day)}${late ? ' (replay)' : ''} — ${total(rounds)}/${MAX_TOTAL}, best: ${TASKS[best.type].name.toLowerCase()} ${best.points}\n`
+  return `👁️ Perceptle #${dayNumber(day)}${late ? ' (replay)' : ''} — ${fmt2(total(rounds))}/${MAX_TOTAL}, best: ${TASKS[best.type].name.toLowerCase()} ${fmt2(best.points)}\n`
     + `${rounds.map((r) => scoreBlock(r.points)).join('')}${streak > 1 ? `  🔥${streak}` : ''}\n${SITE}`;
 }
 
@@ -170,10 +172,10 @@ async function practice() {
     while (!stopped) {
       const task = practiceTask(freshSeed(), { type, difficulty: weekdayDifficulty(w), illusion: w === 0 });
       arena.setPips(done.slice(-9), -1);
-      const avg = done.length ? Math.round(done.reduce((a, b) => a + b, 0) / done.length) : null;
-      const { answer, result } = await arena.play(task, { label: `Practice${avg !== null ? ` · avg ${avg}` : ''}` });
+      const avg = done.length ? fmt2(done.reduce((a, b) => a + b, 0) / done.length) : null;
+      const { answer, ms, result } = await arena.play(task, { label: `Practice${avg !== null ? ` · avg ${avg}` : ''}` });
       done.push(result.points);
-      store.addPractice({ type: task.type, d: weekdayDifficulty(w), err: result.err, points: result.points, at: Date.now() });
+      store.addPractice({ type: task.type, sub: task.params.sub, d: weekdayDifficulty(w), err: result.err, parts: result.parts, ms, points: result.points, at: Date.now() });
       arena.setPips(done.slice(-9), -1);
       await arena.reveal(task, answer, result, { next: 'Another →' });
     }
@@ -202,10 +204,10 @@ async function renderBoard() {
       el('span', { class: 'row-rank', text: `${r.rank}` }),
       el('div', { class: 'row-main' },
         el('div', { class: 'row-name', text: r.name }),
-        el('div', { class: 'row-sub', title: r.rounds.map((p, i) => `${TASKS[plan.tasks[i].type].name} ${p}`).join(', ') },
+        el('div', { class: 'row-sub', title: r.rounds.map((p, i) => `${TASKS[plan.tasks[i].type].name} ${fmt2(p)}`).join(', ') },
           el('span', { class: 'row-emoji', text: r.rounds.map(scoreBlock).join('') }),
           r.played < TASKS_PER_DAY ? ` · ${r.played}/${TASKS_PER_DAY} tasks` : '')),
-      el('span', { class: 'row-score', text: String(r.total) }))));
+      el('span', { class: 'row-score', text: fmt2(r.total) }))));
   show('board-empty', !b.top.length);
 }
 
@@ -226,8 +228,8 @@ async function browseArchive() {
     return el('li', {}, el('button', { class: 'archive-list-item', type: 'button', onclick: () => openArchive(d) },
       el('span', { class: 'archive-list-day', text: `Perceptle #${dayNumber(d)} · ${WEEKDAYS[weekday(d)]} ${d}` }),
       el('span', { class: 'archive-list-prompt', text: [
-        s?.players ? `${s.players} played on the day, best ${s.top}` : 'Nobody played on the day',
-        mine !== null ? `you: ${mine}` : null].filter(Boolean).join(' · ') })));
+        s?.players ? `${s.players} played on the day, best ${fmt2(s.top)}` : 'Nobody played on the day',
+        mine !== null ? `you: ${fmt2(mine)}` : null].filter(Boolean).join(' · ') })));
   }) : [el('li', { class: 'archive-list-empty', text: 'No past days yet. Perceptle started today.' })]));
   list.hidden = false;
 }

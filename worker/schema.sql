@@ -16,9 +16,9 @@ CREATE TABLE IF NOT EXISTS picks (
   is_late      INTEGER NOT NULL DEFAULT 0,          -- 1 = replayed from the archive after its day
   round        INTEGER NOT NULL CHECK (round >= 0 AND round < 5),
   task_type    TEXT NOT NULL,
-  answer       TEXT,                                -- JSON; NULL = the task was abandoned
+  answer       TEXT,                                -- JSON {answer, ms}; NULL = the task was abandoned
   err          REAL,
-  points       INTEGER NOT NULL CHECK (points >= 0 AND points <= 100),
+  points       REAL NOT NULL CHECK (points >= 0 AND points <= 100),   -- 2 dp
   submitted_at TEXT NOT NULL
 );
 CREATE UNIQUE INDEX IF NOT EXISTS picks_player_round ON picks (player_id, day_key, is_late, round);
@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS totals (
   day_key      TEXT NOT NULL,
   is_late      INTEGER NOT NULL,
   display_name TEXT NOT NULL,
-  total        INTEGER NOT NULL,
+  total        REAL NOT NULL,     -- 2 dp
   played       INTEGER NOT NULL,
   rounds       TEXT NOT NULL,     -- comma-separated points per round, in order
   last_at      TEXT NOT NULL,
@@ -43,6 +43,6 @@ CREATE TABLE IF NOT EXISTS day_stats (
   day_key TEXT NOT NULL,
   is_late INTEGER NOT NULL,
   players INTEGER NOT NULL,
-  top     INTEGER NOT NULL,
+  top     REAL NOT NULL,
   PRIMARY KEY (day_key, is_late)
 );

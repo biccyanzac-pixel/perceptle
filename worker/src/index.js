@@ -10,6 +10,7 @@
  *   - the day must be on or after EPOCH and not in the future; late (archive replay) = submitted after that UTC day
  *   - tasks must be answered in order, once each (insert-only, the first answer counts)
  *   - answer must validate for the task type, or be null (abandoned: 0 points)
+ *   - ms (time to answer, for the speed bonus) is reported by the browser, like Factle's timings
  */
 import { EPOCH, todayKey, validDay } from '../../site/js/daily.js';
 import { dayPlan, scoreTask } from '../../site/js/plan.js';
@@ -142,7 +143,7 @@ async function handleRound(request, env, ip) {
   if (rateLimited(ip, 'round', 300)) return fail(request, env, 'rate_limited', 'Too many submissions from here. Try again later.', 429);
   let body;
   try { body = await request.json(); } catch { return fail(request, env, 'bad_request', 'Invalid JSON.', 400); }
-  const { playerId, token, day, round, answer } = body ?? {};
+  const { playerId, token, day, round, answer, ms } = body ?? {};
   if (!(await verifyPlayer(env, playerId, token))) return fail(request, env, 'bad_session', 'Invalid or missing session. Reload the page.', 401);
   const today = todayKey();
   if (!validDay(day) || day < EPOCH) return fail(request, env, 'bad_day', 'There is no game for that day.', 400);
@@ -150,7 +151,8 @@ async function handleRound(request, env, ip) {
   if (!Number.isInteger(round) || round < 0 || round >= TASKS_PER_DAY) return fail(request, env, 'bad_round', 'Invalid task.', 400);
   const task = dayPlan(day).tasks[round];
   if (answer !== null && (answer === undefined || !TASKS[task.type].validate(answer))) return fail(request, env, 'bad_answer', 'Invalid answer.', 400);
-  const answerJson = answer === null ? null : JSON.stringify(answer);
+  if (answer !== null && (!Number.isInteger(ms) || ms < 200 || ms > 3600_000)) return fail(request, env, 'bad_time', 'Invalid answer time.', 400);
+  const answerJson = answer === null ? null : JSON.stringify({ answer, ms });
   if (answerJson && answerJson.length > 200) return fail(request, env, 'bad_answer', 'Invalid answer.', 400);
   const name = validateName(body.name);
   if (!name) return fail(request, env, 'bad_name', `Name must be 1-${MAX_NAME} characters.`, 400);
@@ -162,7 +164,7 @@ async function handleRound(request, env, ip) {
   if (round < done) return fail(request, env, 'already', 'You already answered that task.', 409);
   if (round > done) return fail(request, env, 'out_of_order', 'Tasks must be answered in order.', 409);
 
-  const { points, err } = scoreTask(task, answer);
+  const { points, err } = scoreTask(task, answer, answer === null ? null : ms);
   const now = new Date().toISOString();
   const stmts = [
     env.DB.prepare(
@@ -173,7 +175,7 @@ async function handleRound(request, env, ip) {
       `INSERT INTO totals (player_id, day_key, is_late, display_name, total, played, rounds, last_at)
        VALUES (?, ?, ?, ?, ?, 1, ?, ?)
        ON CONFLICT (player_id, day_key, is_late) DO UPDATE SET
-         total = total + excluded.total, played = played + 1, rounds = rounds || ',' || excluded.rounds,
+         total = ROUND(total + excluded.total, 2), played = played + 1, rounds = rounds || ',' || excluded.rounds,
          last_at = excluded.last_at`,
     ).bind(playerId, day, late, name, points, String(points), now),
   ];

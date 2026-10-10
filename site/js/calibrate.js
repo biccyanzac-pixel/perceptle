@@ -11,15 +11,16 @@ import { TASKS } from './tasks/index.js';
 
 const $ = (id) => document.getElementById(id);
 const TARGET = 65;
-const curveKey = (e) => (e.type === 'midpoint' ? `midpoint.${e.sub}` : e.type);
+// one entry per scored part: count has two (how many, what %), the rest one
+const partsOf = (entries) => entries.flatMap((e) => (e.parts?.length ? e.parts : [{ curve: e.type === 'midpoint' ? `midpoint.${e.sub}` : e.type, err: e.err }]));
 const median = (xs) => { const s = [...xs].sort((a, b) => a - b); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
 const mean = (xs) => xs.reduce((a, b) => a + b, 0) / xs.length;
 const fmt = (x) => (x === null ? '—' : Math.abs(x) >= 10 ? x.toFixed(1) : x.toPrecision(3));
 
-/** The `half` that makes the mean score of these errors equal `target` (keeping full and k). */
+/** The `half` that makes the mean accuracy of these errors equal `target` (keeping k). */
 export function suggestHalf(errs, curve, target = TARGET) {
   const score = (h) => mean(errs.map((e) => curveScore(e === null ? Infinity : e, { ...curve, half: h })));
-  let lo = curve.full + 1e-9, hi = Math.max(curve.half, ...errs.filter((e) => e !== null && Number.isFinite(e))) * 50 + 1;
+  let lo = 1e-9, hi = Math.max(curve.half, ...errs.filter((e) => e !== null && Number.isFinite(e))) * 50 + 1;
   if (score(hi) < target) return null; // too many misses for any half to reach the target
   for (let i = 0; i < 80; i++) { const m = (lo + hi) / 2; if (score(m) < target) lo = m; else hi = m; }
   return (lo + hi) / 2;
@@ -27,7 +28,7 @@ export function suggestHalf(errs, curve, target = TARGET) {
 
 function summarise(entries) {
   const groups = {};
-  for (const e of entries) (groups[curveKey(e)] ||= []).push(e);
+  for (const e of partsOf(entries)) if (CURVES[e.curve]) (groups[e.curve] ||= []).push(e);
   return Object.entries(groups).map(([key, es]) => {
     const errs = es.map((e) => e.err);
     const finite = errs.filter((e) => e !== null);
@@ -47,7 +48,7 @@ function renderResults(entries, label) {
   $('results').hidden = false;
   $('results-label').textContent = label;
   $('overall').textContent = entries.length
-    ? `Mean score ${Math.round(mean(entries.map((e) => curveScore(e.err === null ? Infinity : e.err, CURVES[curveKey(e)]))))} over ${entries.length} tasks (target for a typical adult on Wednesday: 60–70).`
+    ? `Mean points ${mean(entries.map((e) => e.points)).toFixed(2)} over ${entries.length} tasks, including the speed bonus (target for a typical adult on Wednesday: 60–70).`
     : 'No tasks yet.';
   $('table').replaceChildren(...rows.map((r) => {
     const tr = document.createElement('tr');
@@ -83,9 +84,9 @@ async function run() {
   for (let i = 0; i < n && !stopped; i++) {
     const task = practiceTask(freshSeed(), { type: order[i], difficulty: d, illusion: w === 0 });
     arena.setPips(scores.slice(-9), -1);
-    const { answer, result } = await arena.play(task, { label: `Calibration ${i + 1}/${n}` });
+    const { answer, ms, result } = await arena.play(task, { label: `Calibration ${i + 1}/${n}` });
     if (stopped) return;
-    const entry = { type: task.type, sub: task.params.sub, d, err: result.err, points: result.points, at: Date.now(), source: 'calibrate' };
+    const entry = { type: task.type, sub: task.params.sub, d, err: result.err, parts: result.parts, ms, points: result.points, at: Date.now(), source: 'calibrate' };
     session.push(entry);
     store.addPractice(entry);
     scores.push(result.points);

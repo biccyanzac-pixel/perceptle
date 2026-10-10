@@ -35,16 +35,18 @@ only adds days and refuses to change recorded ones.
 
 | Task | What you do | Easier (Monday) | Harder (Saturday) | Sunday illusion special |
 |---|---|---|---|---|
-| Count 🔢 | dots shown 2 s, then type how many | 20–70 dots, plain | 70–400, mixed icons and sizes | some neighbours joined by lines (connected dots look fewer) |
-| Angle 📐 | type the marked angle in degrees | near 30/45/60/90/120… | off-landmark, unequal arms, arms off the screen axes, reflex angles | Zöllner-style hatching on the arms |
+| Count 🔢 | dots for 2 s, then: how many in total? then: what % were one kind? The reveal counts them off | 20–70 dots, 2 colours | 70–400, 3 kinds by colour, size or pattern (chosen daily) | some neighbours joined by lines (connected dots look fewer) |
+| Angle 📐 | the angle is drawn on a tilted disc (it looks like an ellipse): enter the real angle. The reveal tips the disc flat | almost face-on, near 30/45/60/90… | tilted 30–65°, off-landmark angles | Zöllner-style hatching on the arms |
 | Area 🫧 | tap the bigger blob, type how much bigger (%) | ratio 1.35–1.9, smooth shapes | ratio 1.06–1.3, lumpy, stretched | Ebbinghaus: big circles around the bigger blob, small around the smaller |
-| Midpoint 🎯 | tap the middle of a line or the centroid of a shape | mostly lines, long | mostly shapes, lopsided end caps on lines | Müller-Lyer fins at the line's ends |
-| Proportion 🥧 | type the % shaded | one straight cut | wedges and two-strip cuts, away from 25/50/75 | (not illusion-capable) |
-| Length 📏 | tap the longest of 3 lines | 12–20% differences, parallel, few distractors | 2.5–6% differences, any orientation, 9 distractors, Müller-Lyer fins half the time | Müller-Lyer fins (longest gets arrowheads, shortest gets tails) |
+| Midpoint 🎯 | drag the ✕ along a wiggly noodle to halfway along its length, or tap a shape's centre of mass (balance point). The noodle reveal traces both halves in from the ends | gentle, even wiggles; mostly noodles | dense wiggles bunched towards one end, bigger at one end; more shapes | Müller-Lyer arrowhead and tail at the noodle's ends |
+| Proportion 🥧 | type the % of the shape that's coloured in. The reveal pours both parts into a pie of the same area | one straight cut | wedges and two-strip cuts, away from 25/50/75 | (not illusion-capable) |
+| Length 📏 | tap the longest line. Each is one line bent into a shape (squiggle, zigzag, spiral, loop, coil, star). The reveal unrolls them into bars | 4 lines, all the same kind, 12–20% apart | 6 lines, all different kinds, 3–6% apart | (not illusion-capable) |
 | Timing ⏱️ | Start, then Stop after N seconds | 3–5 s, whole seconds | 4–9 s in half seconds, off-beat pulses | flicker (filled durations feel longer) |
 | Colour 🎨 | tap the swatch matching the sample | 6 swatches, near-matches ~0.035 OKLab apart | 8 swatches ~0.012 apart; sample hidden 1.5 s before the palette | sample on a strong complementary surround |
 
-Display rules: no grid lines, no snapping, nothing aligned to the stage edges on harder days, and dot layouts are
+All except Timing have a speed bonus (see [scoring.md](scoring.md)).
+
+Display rules: no grid lines, no snapping (the noodle marker follows the noodle, but along it it moves freely), and dot layouts are
 random but non-overlapping (minimum spacing) inside an irregular region, with no clusters.
 
 ## Fairness

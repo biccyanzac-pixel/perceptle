@@ -1,5 +1,21 @@
 # Perceptle: build status (2026-10-10)
 
+## Update 1 (owner feedback, 2026-10-10 evening)
+- **Scores to 2 dp**, and 100 is rare: no "close enough" zone (only an exact answer gets 100 accuracy), and a
+  **speed bonus** on every task except Timing: points = accuracy × (0.85 + 0.15 × speed). The curve never reaches
+  0 for a real answer.
+- **Count**: 2–3 kinds of dot (colour, size or pattern, chosen daily); a second question asks what % were one
+  kind. The reveal counts them off.
+- **Angle**: now on a tilted disc (3D); the reveal tips it flat.
+- **Midpoint**: the straight line became a wiggly noodle with a ✕ stuck to it (no miss-taps), denser at one end
+  on hard days. The shape version now says "centre of mass".
+- **Proportion**: "coloured in" (vivid) vs plain white/grey, and the reveal pours both parts into an equal-area pie.
+- **Length**: 4–6 lines, each bent into a different shape; the reveal unrolls them into bars.
+- Day 1 (2026-10-10) was regenerated with the new tasks. The owner's one test row was cleared (after an export),
+  and saved progress was reset (storage key v2).
+- The page now loads the jacob.gg shared kit (added by the hub work) and shows its "rate today's game" widget
+  when the day is done.
+
 All four phases were built in one go: the owner asked for a daily game with a leaderboard on the jacob.gg hub,
 like the other games, rather than stopping after each phase. Puzzle #1 is 2026-10-10.
 

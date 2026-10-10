@@ -1,10 +1,34 @@
-// Count: 20-400 dots (or small icons) for 2 s, then hidden. Scored on |ln(guess / true)|.
-import { log } from '../dmath.js';
+// Count: 20-400 dots for 2 s, then hidden. Two questions: how many in total, then what % were one kind
+// (a colour, a size or a pattern; which kind changes daily). Scored on |ln(guess / true)| and on percentage
+// points, weighted 65/35, then the speed bonus.
+import { log, roundTo } from '../dmath.js';
 import { area, bbox, blob, lerp, pointInPolygon } from '../geometry.js';
 import { Rng } from '../rng.js';
-import { CURVES, curveScore } from '../scoring.js';
+import { CURVES, WEIGHTS, curveScore, round2 } from '../scoring.js';
 
 export const EXPOSURE_MS = 2000;
+
+// Fixed colours (not theme colours), so every player sees the same contrast. Readable on both stage backgrounds
+// and distinguishable with the common colour-vision deficiencies (they differ in lightness too).
+export const DOT_COLOURS = [
+  { name: 'orange', hex: '#f08c00' },
+  { name: 'blue', hex: '#1c7ed6' },
+  { name: 'pink', hex: '#e64980' },
+];
+const PATTERNS = [
+  { kind: 'dot', name: 'solid dots' },
+  { kind: 'ring', name: 'rings' },
+  { kind: 'tri', name: 'triangles' },
+];
+const SIZES = ['big', 'medium', 'small'];
+const SIZE_SCALE = [1, 0.72, 0.5];
+
+/** What the second question asks about, e.g. "orange" or "rings". */
+export function categoryName(p) {
+  if (p.scheme === 'colour') return DOT_COLOURS[p.order[0]].name;
+  if (p.scheme === 'pattern') return PATTERNS[p.order[0]].name;
+  return `${SIZES[0]} ones`;
+}
 
 export default {
   type: 'count',
@@ -13,17 +37,28 @@ export default {
   illusionCapable: true,
   illusionName: 'Connected dots',
 
-  prompt: () => 'How many?',
+  prompt: () => 'How many in total?',
+  prompt2: (p) => `What % were ${categoryName(p)}?`,
 
   generate(rng, d, { illusion = false } = {}) {
     const lo = lerp(20, 70, d), hi = lerp(70, 400, d);
     const n = Math.round(rng.logUniform(lo, hi + 1));
-    const kinds = d < 0.35 ? ['dot'] : d < 0.7 ? ['dot', 'ring'] : ['dot', 'ring', 'square', 'tri'];
+    const scheme = rng.pick(d < 0.3 ? ['colour'] : ['colour', 'size', 'pattern']);
+    const cats = d < 0.5 ? 2 : 3;
+    // the asked-about kind is category 0; it's 15-60% of the dots
+    const counts = Array(cats).fill(0);
+    counts[0] = Math.max(1, Math.min(n - cats + 1, Math.round(n * rng.range(0.15, 0.6))));
+    let rest = n - counts[0];
+    for (let c = 1; c < cats; c++) {
+      const take = c === cats - 1 ? rest : Math.max(1, Math.round(rest * rng.range(0.35, 0.65)));
+      counts[c] = take; rest -= take;
+    }
+    const order = rng.shuffle([0, 1, 2]); // which colour/pattern each category gets
     return {
-      n,
+      n, scheme, counts, order,
+      pct: roundTo((counts[0] / n) * 100, 2),
       exposureMs: EXPOSURE_MS,
-      kinds,
-      sizeVar: lerp(0.05, 0.45, d),
+      sizeVar: scheme === 'size' ? 0 : lerp(0.05, 0.3, d),
       rough: lerp(0.08, 0.22, d),
       illusion,
       seed: rng.int(0, 0x7fffffff),
@@ -39,6 +74,9 @@ export default {
     const b = bbox(region);
     let dmin = 0.72 * Math.sqrt(A / p.n);
     const rBase = Math.min(0.018, 0.34 * dmin);
+    const labels = [];
+    p.counts.forEach((c, i) => { for (let k = 0; k < c; k++) labels.push(i); });
+    rng.shuffle(labels);
     const dots = [];
     let tries = 0;
     while (dots.length < p.n) {
@@ -51,7 +89,14 @@ export default {
         if (dx * dx + dy * dy < dmin * dmin) { ok = false; break; }
       }
       if (!ok) continue;
-      dots.push({ x, y, r: rBase * (1 - p.sizeVar * rng.next()), kind: rng.pick(p.kinds), rot: rng.next() });
+      const cat = labels[dots.length];
+      const scale = p.scheme !== 'size' ? 1 : p.counts.length === 2 ? [1, 0.5][cat] : SIZE_SCALE[cat];
+      dots.push({
+        x, y, cat, rot: rng.next(),
+        r: rBase * scale * (1 - p.sizeVar * rng.next()),
+        kind: p.scheme === 'pattern' ? PATTERNS[p.order[cat]].kind : 'dot',
+        colour: p.scheme === 'colour' ? DOT_COLOURS[p.order[cat]].hex : null,
+      });
     }
     // Sunday special: join some neighbours with lines; connected dots look like fewer things
     const links = [];
@@ -71,20 +116,22 @@ export default {
     return { dots, links };
   },
 
-  validate: (a) => Number.isInteger(a) && a >= 0 && a <= 9999,
-
-  error: (p, a) => (a > 0 ? Math.abs(log(a / p.n)) : Infinity),
+  validate: (a) => !!a && Number.isInteger(a.n) && a.n >= 0 && a.n <= 9999 && Number.isInteger(a.pct) && a.pct >= 0 && a.pct <= 100,
 
   score(p, a) {
-    if (a === null || !this.validate(a)) return { points: 0, err: null };
-    const err = this.error(p, a);
-    return { points: curveScore(err, CURVES.count), err: Number.isFinite(err) ? err : null };
+    if (a === null || !this.validate(a)) return { acc: 0, err: null, parts: [] };
+    const e1 = a.n > 0 ? Math.abs(log(a.n / p.n)) : Infinity;
+    const e2 = Math.abs(a.pct - p.pct);
+    const [w1, w2] = WEIGHTS.count;
+    const acc = round2(w1 * curveScore(e1, CURVES.count) + w2 * curveScore(e2, CURVES['count.pct']));
+    const err = Number.isFinite(e1) ? e1 : null;
+    return { acc, err, parts: [{ curve: 'count', err }, { curve: 'count.pct', err: e2 }] };
   },
 
-  truthText: (p) => `${p.n} dots`,
+  truthText: (p) => `${p.n} dots, ${roundTo(p.pct, 1)}% ${categoryName(p)}`,
   answerText: (p, a) => {
     if (a === null) return 'no answer';
-    const pct = Math.round(((a - p.n) / p.n) * 100);
-    return `you said ${a} (${pct > 0 ? '+' : ''}${pct}%)`;
+    const off = Math.round(((a.n - p.n) / p.n) * 100);
+    return `you said ${a.n} (${off > 0 ? '+' : ''}${off}%) and ${a.pct}%`;
   },
 };
