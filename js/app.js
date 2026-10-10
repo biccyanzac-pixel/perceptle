@@ -1,5 +1,5 @@
 // Perceptle UI: intro -> countdown -> 5 tasks (answer, reveal) -> results, share, leaderboard. Archive replays.
-// Practice (unlimited random tasks) unlocks after today's five.
+// Practice (unlimited random tasks) unlocks after today's tasks.
 import * as api from './api.js';
 import { Arena } from './arena.js';
 import { WEEKDAYS, EPOCH, addDays, dayNumber, msUntilNextUtcDay, todayKey, weekday, weekdayDifficulty } from './daily.js';

@@ -2,6 +2,7 @@
 // with the truth marked (often animated, so you can see why). Everything is drawn in stage units, so it looks the
 // same on every screen. Display-only code: Math.* is fine here (it never decides a task or a score).
 import { area as polyArea, centroid, distToSegment, pointInPolygon } from '../geometry.js';
+import { el } from './controls.js';
 import { Rng } from '../rng.js';
 import { project } from '../tasks/angle.js';
 import { DOT_COLOURS, categoryName } from '../tasks/count.js';
@@ -84,7 +85,7 @@ const count = {
     hide();
     prompt(TASKS.count.prompt2(p));
     stage.draw((s) => drawLegend(s, p, L));
-    const pct = await controls.keypad({ unit: '%', maxDigits: 3, max: 100 }).done;
+    const pct = await controls.keypad({ unit: '%', maxDigits: 3, max: 100, decimals: 1 }).done;
     return { n, pct };
   },
   reveal({ stage, task }) {
@@ -140,7 +141,7 @@ function drawAngle(s, p, tilt, guess = null) {
 const angle = {
   async run({ stage, controls, task }) {
     stage.draw((s) => drawAngle(s, task.params, task.params.tilt));
-    return controls.keypad({ unit: '°', maxDigits: 3, max: 360 }).done;
+    return controls.keypad({ unit: '°', maxDigits: 3, max: 360, decimals: 1 }).done;
   },
   async reveal({ stage, task, answer }) {
     const p = task.params;
@@ -191,7 +192,7 @@ const area = {
   async run({ stage, controls, task, prompt }) {
     const p = task.params;
     let pick = null;
-    const kp = controls.keypad({ unit: '% bigger', maxDigits: 3, ready: () => pick !== null });
+    const kp = controls.keypad({ unit: '% bigger', maxDigits: 3, decimals: 1, ready: () => pick !== null });
     stage.draw((s) => drawArea(s, p, pick));
     prompt('Tap the bigger shape');
     stage.onPointer((x, y, type) => {
@@ -321,10 +322,15 @@ function drawProportion(s, p) {
   s.poly(p.shape, { stroke: s.c.ink, width: 0.007 });
 }
 
+/** A small square of the 'coloured in' colour, so it's clear which part is which. */
+const swatch = () => el('span', { class: 'swatch', 'aria-label': 'this colour' });
+
 const proportion = {
-  async run({ stage, controls, task }) {
+  async run({ stage, controls, task, prompt }) {
     stage.draw((s) => drawProportion(s, task.params));
-    return controls.keypad({ unit: '% coloured', maxDigits: 3, max: 100 }).done;
+    prompt(el('span', {}, 'What % of the shape is coloured in ', swatch(), '?'));
+    const unit = el('span', {}, '% ', swatch(), ' coloured');
+    return controls.keypad({ unit, maxDigits: 3, max: 100, decimals: 1 }).done;
   },
   async reveal({ stage, task, answer }) {
     const p = task.params;
@@ -352,7 +358,9 @@ const proportion = {
           s.line([cx, cy], [cx + r * 1.12 * Math.cos(g), cy + r * 1.12 * Math.sin(g)], { stroke: s.c.bad, width: 0.007, dash: [0.02, 0.012] });
           s.line([cx, cy], [cx + r * 1.12 * Math.cos(a0), cy + r * 1.12 * Math.sin(a0)], { stroke: s.c.bad, width: 0.007, dash: [0.02, 0.012] });
         }
-        s.text(cx, cy + r + 0.06 > 0.96 ? cy - r - 0.05 : cy + r + 0.06, `${Math.round(p.truth * 10) / 10}% coloured`, { size: 0.055 });
+        const below = cy + r + 0.06 <= 0.96;
+        s.text(cx, below ? cy + r + 0.05 : cy - r - 0.09, `${p.truth.toFixed(1)}% coloured`, { size: 0.055 });
+        if (answer !== null) s.text(cx, below ? cy + r + 0.1 : cy - r - 0.04, `you said ${answer}%`, { size: 0.042, fill: s.c.bad, weight: 600 });
       }
     });
   },

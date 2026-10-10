@@ -4,7 +4,7 @@
 import { log, roundTo } from '../dmath.js';
 import { area, bbox, blob, lerp, pointInPolygon } from '../geometry.js';
 import { Rng } from '../rng.js';
-import { CURVES, WEIGHTS, curveScore, round2 } from '../scoring.js';
+import { CURVES, WEIGHTS, curveScore, oneDp, round2 } from '../scoring.js';
 
 export const EXPOSURE_MS = 2000;
 
@@ -56,7 +56,7 @@ export default {
     const order = rng.shuffle([0, 1, 2]); // which colour/pattern each category gets
     return {
       n, scheme, counts, order,
-      pct: roundTo((counts[0] / n) * 100, 2),
+      pct: roundTo((counts[0] / n) * 100, 1),
       exposureMs: EXPOSURE_MS,
       sizeVar: scheme === 'size' ? 0 : lerp(0.05, 0.3, d),
       rough: lerp(0.08, 0.22, d),
@@ -116,7 +116,7 @@ export default {
     return { dots, links };
   },
 
-  validate: (a) => !!a && Number.isInteger(a.n) && a.n >= 0 && a.n <= 9999 && Number.isInteger(a.pct) && a.pct >= 0 && a.pct <= 100,
+  validate: (a) => !!a && Number.isInteger(a.n) && a.n >= 0 && a.n <= 9999 && oneDp(a.pct, 0, 100),
 
   score(p, a) {
     if (a === null || !this.validate(a)) return { acc: 0, err: null, parts: [] };

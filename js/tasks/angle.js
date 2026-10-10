@@ -4,7 +4,7 @@
 // familiar values. The reveal tips the disc flat so you can see the real angle.
 import { roundTo } from '../dmath.js';
 import { lerp, offMultiple } from '../geometry.js';
-import { CURVES, curveScore, round2 } from '../scoring.js';
+import { CURVES, curveScore, oneDp, round2 } from '../scoring.js';
 
 const LANDMARKS = [30, 45, 60, 90, 120, 135, 150];
 
@@ -51,7 +51,7 @@ export default {
     };
   },
 
-  validate: (a) => Number.isInteger(a) && a >= 0 && a <= 360,
+  validate: (a) => oneDp(a, 0, 360),
 
   score(p, a) {
     if (a === null || !this.validate(a)) return { acc: 0, err: null, parts: [] };

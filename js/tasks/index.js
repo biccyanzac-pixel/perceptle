@@ -12,7 +12,7 @@ import timing from './timing.js';
 
 export const TASKS = { count, angle, area, midpoint, proportion, length, timing, colour };
 
-/** Which types a day draws its five from. Ordered by start date; a day uses the last pool that has started. */
+/** Which types a day plays (all of them, once each; TASKS_PER_DAY in scoring.js must match the pool size). Ordered by start date; a day uses the last pool that has started. */
 export const POOLS = [
   { from: '2026-10-10', types: ['count', 'angle', 'area', 'midpoint', 'proportion', 'length', 'timing', 'colour'] },
 ];

@@ -3,7 +3,7 @@
 // so a wrong pick costs exactly as much as it should and no separate penalty is needed.
 import { log } from '../dmath.js';
 import { area, bbox, blob, lerp, transform } from '../geometry.js';
-import { CURVES, curveScore, round2 } from '../scoring.js';
+import { CURVES, curveScore, oneDp, round2 } from '../scoring.js';
 
 const ARRANGEMENTS = [
   [[0.27, 0.5], [0.73, 0.5]],
@@ -50,7 +50,7 @@ export default {
     return { polys, bigger, ratio: areas[bigger] / areas[1 - bigger], centres, illusion };
   },
 
-  validate: (a) => !!a && (a.pick === 0 || a.pick === 1) && Number.isInteger(a.pct) && a.pct >= 0 && a.pct <= 999,
+  validate: (a) => !!a && (a.pick === 0 || a.pick === 1) && oneDp(a.pct, 0, 999),
 
   error(p, a) {
     const g = 1 + a.pct / 100;
