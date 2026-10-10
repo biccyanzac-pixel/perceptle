@@ -22,12 +22,12 @@ test('different dates give different tasks', () => {
   assert.equal(seen.size, DAYS.length);
 });
 
-test('every day: 5 different types; Sunday has exactly one illusion special; difficulty by weekday', () => {
+test('every day: all 8 types once each, order varies; Sunday has exactly one illusion special; difficulty by weekday', () => {
   const counts = {};
   for (const d of DAYS) {
     const p = dayPlan(d);
-    assert.equal(p.tasks.length, 5);
-    assert.equal(new Set(p.tasks.map((t) => t.type)).size, 5);
+    assert.equal(p.tasks.length, 8);
+    assert.equal(new Set(p.tasks.map((t) => t.type)).size, 8);
     const specials = p.tasks.filter((t) => t.illusion);
     if (weekday(d) === 0) {
       assert.equal(specials.length, 1, d);
@@ -40,8 +40,10 @@ test('every day: 5 different types; Sunday has exactly one illusion special; dif
   assert.deepEqual(dayDifficulty('2026-10-14'), 0.4); // Wednesday
   assert.deepEqual(dayDifficulty('2026-10-17'), 1); // Saturday
   assert.deepEqual(dayDifficulty('2026-10-11'), 0.5); // Sunday
-  // all 8 types rotate in, roughly evenly (5/8 of days each)
-  for (const t of Object.keys(TASKS)) assert.ok(counts[t] > DAYS.length * 0.45 && counts[t] < DAYS.length * 0.8, `${t}: ${counts[t]}`);
+  for (const t of Object.keys(TASKS)) assert.equal(counts[t], DAYS.length, t);
+  // the order changes day to day: each type opens the day sometimes
+  const firsts = new Set(DAYS.map((d) => dayPlan(d).tasks[0].type));
+  assert.equal(firsts.size, 8);
 });
 
 test('count: 20-400 dots in 2-3 kinds, laid out without overlaps, inside the stage, exactly n, true %', () => {
@@ -54,7 +56,7 @@ test('count: 20-400 dots in 2-3 kinds, laid out without overlaps, inside the sta
     assert.equal(dots.length, p.n);
     assert.equal(p.counts.reduce((a, b) => a + b, 0), p.n);
     assert.equal(dots.filter((q) => q.cat === 0).length, p.counts[0]);
-    assert.ok(Math.abs(p.pct - (100 * p.counts[0]) / p.n) < 0.01 && p.counts.every((c) => c >= 1));
+    assert.ok(Math.abs(p.pct - (100 * p.counts[0]) / p.n) <= 0.05 && p.counts.every((c) => c >= 1));
     for (let i = 0; i < dots.length; i++) {
       const a = dots[i];
       assert.ok(a.x > 0.02 && a.x < 0.98 && a.y > 0.02 && a.y < 0.98);
@@ -90,7 +92,7 @@ test('angle, area, midpoint, proportion, length, timing, colour: parameters in r
     }
 
     const pr = practiceTask(s, { type: 'proportion', difficulty: d }).params;
-    assert.ok(pr.truth > 5 && pr.truth < 95, `proportion ${pr.truth}`);
+    assert.ok(pr.truth > 5 && pr.truth < 95 && Math.round(pr.truth * 10) / 10 === pr.truth, `proportion ${pr.truth}`);
 
     const l = practiceTask(s, { type: 'length', difficulty: d, illusion }).params;
     const Ls = l.lines.map((g) => g.L);

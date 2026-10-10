@@ -4,7 +4,7 @@
 // the easy-to-judge 25/50/75%.
 import { cos, roundTo, sin, TAU } from '../dmath.js';
 import { area, blob, clipHalfPlane, lerp, offMultiple } from '../geometry.js';
-import { CURVES, curveScore, round2 } from '../scoring.js';
+import { CURVES, curveScore, oneDp, round2 } from '../scoring.js';
 
 /** Offset c so that the part of `poly` with n·x <= c has `frac` of `total` area. Area grows with c. */
 function solveCut(poly, nx, ny, frac, total) {
@@ -70,11 +70,11 @@ export default {
     }
     const p = { shape, mode, cuts };
     const shaded = shadedPieces(p).reduce((s, piece) => s + area(piece), 0);
-    p.truth = roundTo((shaded / total) * 100, 2);
+    p.truth = roundTo((shaded / total) * 100, 1); // the answer is to 1 dp, so an exact guess is possible
     return p;
   },
 
-  validate: (a) => Number.isInteger(a) && a >= 0 && a <= 100,
+  validate: (a) => oneDp(a, 0, 100),
 
   error: (p, a) => Math.abs(a - p.truth),
 

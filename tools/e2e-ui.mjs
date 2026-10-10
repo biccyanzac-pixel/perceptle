@@ -1,4 +1,4 @@
-// Browser end-to-end: plays today's five tasks in headless Chrome at phone (360 px) and desktop widths,
+// Browser end-to-end: plays all of today's tasks in headless Chrome at phone (360 px) and desktop widths,
 // answering from the same generator code in Node (so it knows every true answer), against a local worker.
 //   cd worker && npm run db:init:local && npm run dev:local     (in another terminal)
 //   node tools/e2e-ui.mjs                 (API=off to skip the leaderboard checks)
@@ -32,9 +32,9 @@ async function answer(page, task, exact = true) {
   const p = task.params;
   const type = async (n) => { await page.keyboard.type(String(n)); await page.keyboard.press('Enter'); };
   switch (task.type) {
-    case 'count': await type(exact ? p.n : Math.round(p.n * 1.5)); return type(Math.round(p.pct));
-    case 'angle': return type(exact ? Math.round(p.angle) : Math.round(p.angle) + 20);
-    case 'proportion': return type(exact ? Math.round(p.truth) : Math.min(100, Math.round(p.truth) + 25));
+    case 'count': await type(exact ? p.n : Math.round(p.n * 1.5)); return type(p.pct);
+    case 'angle': return type(exact ? p.angle : Math.round(p.angle) + 20);
+    case 'proportion': return type(exact ? p.truth : Math.min(100, Math.round(p.truth) + 25));
     case 'area': {
       const [x, y] = centroid(p.polys[exact ? p.bigger : 1 - p.bigger]);
       await tapStage(page, x, y);
@@ -74,9 +74,9 @@ async function playDay(page, tag, shots) {
   if (await page.isVisible('#name')) await page.fill('#name', `Tester ${tag}`);
   await page.click('#start');
   await page.waitForSelector('.arena');
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < plan.tasks.length; i++) {
     const task = plan.tasks[i];
-    await page.waitForFunction((n) => document.querySelector('.arena-name')?.textContent.startsWith(`${n}/5`), i + 1, { timeout: 15000 });
+    await page.waitForFunction(([n, total]) => document.querySelector(".arena-name")?.textContent.startsWith(`${n}/${total}`), [i + 1, plan.tasks.length], { timeout: 15000 });
     await page.waitForTimeout(150);
     // layout lock: nothing scrolls, the stage is square and inside the viewport
     const lock = await page.evaluate(() => {
@@ -148,10 +148,10 @@ watch(quitter);
 await quitter.goto(url());
 await quitter.fill('#name', 'Quitter');
 await quitter.click('#start');
-await quitter.waitForFunction(() => document.querySelector('.arena-name')?.textContent.startsWith('1/5'), null, { timeout: 15000 });
+await quitter.waitForFunction(() => document.querySelector('.arena-name')?.textContent.startsWith('1/8'), null, { timeout: 15000 });
 await quitter.reload();
 await quitter.waitForSelector('#intro:not([hidden])');
-check('reload mid-task: that task scores 0, continue from the next', (await quitter.textContent('#start-label')).includes('task 2 of 5'));
+check('reload mid-task: that task scores 0, continue from the next', (await quitter.textContent('#start-label')).includes('task 2 of 8'));
 
 // --- desktop, 1280 px ---
 const dctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
@@ -169,7 +169,7 @@ const blockedErrors = []; blocked.on('pageerror', (e) => blockedErrors.push(e.me
 await blocked.goto('http://localhost:8082/');
 await blocked.fill('#name', 'NoStorage');
 await blocked.click('#start');
-await blocked.waitForFunction(() => document.querySelector('.arena-name')?.textContent.startsWith('1/5'), null, { timeout: 15000 });
+await blocked.waitForFunction(() => document.querySelector('.arena-name')?.textContent.startsWith('1/8'), null, { timeout: 15000 });
 check('works with localStorage blocked', blockedErrors.length === 0, blockedErrors.join(' | '));
 
 // --- one of every task type, rendered at 360 px, for the screenshots ---

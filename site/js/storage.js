@@ -1,8 +1,8 @@
 // localStorage, wrapped so the game works with storage blocked or empty (private mode, cleared data).
 // Progress per day: { rounds: [{ type, answer, points, err }], started: { index: epochMs } }
 // Today's real game and archive replays are kept apart ('day' vs 'late').
-// v2 (2026-10-10): day 1 was regenerated with the redesigned tasks, so progress saved for the old one is ignored.
-const KEY = 'perceptle:progress:v2';
+// v2, v3 (2026-10-10): day 1 was regenerated (redesigned tasks, then all 8 a day), so older saved progress is ignored.
+const KEY = 'perceptle:progress:v3';
 
 function readAll() {
   try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; }

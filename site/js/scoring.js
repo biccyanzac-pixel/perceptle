@@ -55,7 +55,8 @@ export const SPEED = {
 };
 
 export const MAX_POINTS = 100;
-export const TASKS_PER_DAY = 5;
+// Every day plays every type in its pool once (tasks/index.js POOLS), in a seeded order.
+export const TASKS_PER_DAY = 8;
 export const MAX_TOTAL = MAX_POINTS * TASKS_PER_DAY;
 
 /** Round to 2 dp (deterministic). */
@@ -91,6 +92,9 @@ export function withSpeed(type, acc, ms) {
   if (!SPEED[type]) return round2(acc);
   return round2(acc * (1 - SPEED_WEIGHT + SPEED_WEIGHT * speedFactor(type, ms)));
 }
+
+/** A number with at most one decimal place, in [lo, hi] (answers typed on the keypad). */
+export const oneDp = (a, lo, hi) => typeof a === "number" && Number.isFinite(a) && a >= lo && a <= hi && Math.round(a * 10) / 10 === a;
 
 export const fmt2 = (x) => (typeof x === 'number' ? x.toFixed(2) : '–');
 

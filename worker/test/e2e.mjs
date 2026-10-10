@@ -54,9 +54,9 @@ check('missing answer time rejected', noTime.status === 400 && noTime.data.error
 check('empty name rejected', noName.status === 400);
 
 let expected = 0;
-for (let i = 0; i < 5; i++) {
+for (let i = 0; i < plan.tasks.length; i++) {
   const task = plan.tasks[i];
-  const exact = i !== 3;
+  const exact = i !== 3; // one deliberate miss
   const answer = answerFor(task, exact);
   const ms = 2500 + i * 1500; // later tasks answered slower: the speed bonus must match too
   const want = scoreTask(task, answer, ms).points;
@@ -64,7 +64,7 @@ for (let i = 0; i < 5; i++) {
   const r = await call('/api/round', { ...s1, day: today, round: i, answer, ms, name: 'Alice' });
   check(`task ${i + 1} (${task.type}) scored by the server = browser's score`, r.status === 200 && r.data.points === want, `${r.data?.points} vs ${want}`);
 }
-const again = await call('/api/round', { ...s1, day: today, round: 4, answer: answerFor(plan.tasks[4]), ms: 3000, name: 'Alice' });
+const again = await call('/api/round', { ...s1, day: today, round: plan.tasks.length - 1, answer: answerFor(plan.tasks.at(-1)), ms: 3000, name: 'Alice' });
 check('second answer to a task rejected', again.status === 409);
 
 // a second player who abandons task 1 (null) and gets the rest right
@@ -79,7 +79,7 @@ for (let i = 0; i < 2; i++) {
 
 const board = (await call(`/api/leaderboard?day=${today}&playerId=${s2.playerId}`)).data;
 const alice = board.top.find((r) => r.name === 'Alice'), bob = board.top.find((r) => r.name === 'Bob');
-check('board: Alice has the server total (2 dp)', Math.abs(alice?.total - expected) < 0.005 && alice.played === 5, JSON.stringify(alice));
+check('board: Alice has the server total (2 dp)', Math.abs(alice?.total - expected) < 0.005 && alice.played === plan.tasks.length, JSON.stringify(alice));
 check('board: Bob part-way, marked as you', Math.abs(bob?.total - expected2) < 0.005 && bob.played === 2 && bob.you, JSON.stringify(bob));
 check('board: sorted by total', board.top.every((r, i) => i === 0 || board.top[i - 1].total >= r.total));
 

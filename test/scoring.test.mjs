@@ -88,6 +88,11 @@ test('midpoint: noodle by fraction of length, centre relative to size (screen in
 
 test('proportion, length, timing, colour', () => {
   assert.ok(acc('proportion', { truth: 37.2 }, 37) > 99 && acc('proportion', { truth: 37.2 }, 37) < 100);
+  assert.equal(acc('proportion', { truth: 37.2 }, 37.2), 100); // a 1-dp answer can be exact
+  assert.equal(acc('proportion', { truth: 37.2 }, 37.25), 0); // more than 1 dp: rejected
+  assert.equal(acc('angle', { angle: 73.4 }, 73.4), 100);
+  assert.equal(acc('count', { n: 50, pct: 34.5 }, { n: 50, pct: 34.5 }), 100);
+  assert.equal(acc('area', { bigger: 0, ratio: 1.255 }, { pick: 0, pct: 25.5 }), 100);
   assert.equal(acc('proportion', { truth: 30 }, 30 + CURVES.proportion.half), 50);
   const l = { longest: 2, lines: [{ L: 0.3 }, { L: 0.35 }, { L: 0.4 }] };
   assert.equal(acc('length', l, 2), 100);

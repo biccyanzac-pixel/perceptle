@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS picks (
   player_id    TEXT NOT NULL REFERENCES players (id),
   day_key      TEXT NOT NULL,                       -- puzzle's UTC day, YYYY-MM-DD
   is_late      INTEGER NOT NULL DEFAULT 0,          -- 1 = replayed from the archive after its day
-  round        INTEGER NOT NULL CHECK (round >= 0 AND round < 5),
+  round        INTEGER NOT NULL CHECK (round >= 0 AND round < 8),
   task_type    TEXT NOT NULL,
   answer       TEXT,                                -- JSON {answer, ms}; NULL = the task was abandoned
   err          REAL,

@@ -28,23 +28,27 @@ export class Controls {
   }
 
   /**
-   * Number entry. Resolves with an integer when OK is pressed.
+   * Number entry. Resolves with a number when OK is pressed: an integer, or with `decimals: 1` up to one decimal
+   * place (a '.' key appears). maxDigits counts digits before the point.
    * `ready()` can veto OK (e.g. area: a shape must be picked first); call `refresh()` after it changes.
    */
-  keypad({ unit = '', maxDigits = 3, max = 999, okLabel = 'OK', ready = () => true } = {}) {
+  keypad({ unit = '', maxDigits = 3, max = 999, decimals = 0, okLabel = 'OK', ready = () => true } = {}) {
     this.clear();
     let value = '';
     const shown = el('span', { class: 'kp-value', text: '' });
-    const display = el('div', { class: 'kp-display', 'aria-live': 'polite' }, shown, el('span', { class: 'kp-unit', text: unit }));
+    const unitEl = typeof unit === 'string' ? el('span', { class: 'kp-unit', text: unit }) : el('span', { class: 'kp-unit' }, unit);
+    const display = el('div', { class: 'kp-display', 'aria-live': 'polite' }, shown, unitEl);
     const ok = el('button', { class: 'kp-key kp-ok', type: 'button', text: okLabel, disabled: '' });
     const refresh = () => {
       shown.textContent = value || '–';
       display.classList.toggle('empty', !value);
-      ok.disabled = !value || !ready();
+      ok.disabled = !value || value === '0.' || !ready();
     };
     const press = (k) => {
+      const [whole, frac] = value.split('.');
       if (k === 'back') value = value.slice(0, -1);
-      else if (/^\d$/.test(k) && value.length < maxDigits) {
+      else if (k === '.') { if (decimals && frac === undefined) value = (value || '0') + '.'; }
+      else if (/^\d$/.test(k) && (frac !== undefined ? frac.length < decimals : whole.length < maxDigits)) {
         const next = value === '0' ? k : value + k;
         if (Number(next) <= max) value = next;
       }
@@ -53,15 +57,17 @@ export class Controls {
     const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].map((d) =>
       el('button', { class: 'kp-key', type: 'button', text: d, onpointerdown: (e) => { e.preventDefault(); press(d); } }));
     const back = el('button', { class: 'kp-key kp-back', type: 'button', 'aria-label': 'Delete', text: '⌫', onpointerdown: (e) => { e.preventDefault(); press('back'); } });
-    this.host.append(el('div', { class: 'keypad' }, display, el('div', { class: 'kp-grid' }, ...keys, back, ok)));
+    const dot = decimals ? el('button', { class: 'kp-key', type: 'button', 'aria-label': 'Decimal point', text: '.', onpointerdown: (e) => { e.preventDefault(); press('.'); } }) : null;
+    const grid = el('div', { class: `kp-grid${decimals ? ' kp-grid-dec' : ''}` }, ...keys, dot, back, ok);
+    this.host.append(el('div', { class: 'keypad' }, display, grid));
     refresh();
     return {
       refresh,
       done: new Promise((resolve) => {
-        const submit = () => { if (!ok.disabled) resolve(Number(value)); };
+        const submit = () => { if (!ok.disabled) resolve(Number(value.endsWith('.') ? value.slice(0, -1) : value)); };
         ok.addEventListener('click', submit);
         this.listenKeys((e) => {
-          if (/^\d$/.test(e.key)) { press(e.key); e.preventDefault(); }
+          if (/^\d$/.test(e.key) || e.key === '.' || e.key === ',') { press(e.key === ',' ? '.' : e.key); e.preventDefault(); }
           else if (e.key === 'Backspace') { press('back'); e.preventDefault(); }
           else if (e.key === 'Enter') { submit(); e.preventDefault(); }
         });

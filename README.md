@@ -1,9 +1,9 @@
 # Perceptle
 
-The daily perception olympics. Five quick estimation tasks a day, each a few seconds long, each scored 0–100
-for precision, out of 500. No knowledge needed: it tests eyes and instinct. The tasks come from a library of
-eight (count, angle, area, midpoint, proportion, length, timing, colour), get harder from Monday to Saturday, and
-Sunday has an illusion special. Everyone gets the same tasks each UTC day, and there's a shared leaderboard.
+The daily perception olympics. Eight quick estimation tasks a day, one of each kind, each a few seconds long,
+each scored 0–100.00 for precision and speed, out of 800. No knowledge needed: it tests eyes and instinct. The eight
+(count, angle, area, midpoint, proportion, length, timing, colour) come in a different order each day, get harder
+from Monday to Saturday, and Sunday has an illusion special. Everyone gets the same tasks each UTC day, and there's a shared leaderboard.
 
 **Play:** https://biccyanzac-pixel.github.io/perceptle/ (also on the [jacob.gg](https://biccyanzac-pixel.github.io/jacob.gg/) hub)
 

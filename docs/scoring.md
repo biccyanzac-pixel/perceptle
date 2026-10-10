@@ -1,6 +1,6 @@
 # Scoring
 
-Every task scores **0–100 points to 2 decimal places** (so 500.00 a day). All the knobs are in
+Every task scores **0–100 points to 2 decimal places** (so 800.00 a day: all eight tasks every day). All the knobs are in
 [`site/js/scoring.js`](../site/js/scoring.js): `CURVES`, `WEIGHTS`, `SPEED` and `SPEED_WEIGHT`.
 
 ## 1. Accuracy

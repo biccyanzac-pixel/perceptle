@@ -1005,11 +1005,11 @@ html.locked, html.locked body {
   min-height: 2rem;
 }
 
-.pips { list-style: none; margin: 0; padding: 0; display: flex; gap: 0.3rem; flex: none; }
+.pips { list-style: none; margin: 0; padding: 0; display: flex; gap: 0.2rem; flex: none; }
 .pip {
-  width: 1.35rem; height: 1.35rem;
+  width: 1.1rem; height: 1.1rem;
   display: grid; place-items: center;
-  font-size: 0.8rem;
+  font-size: 0.62rem;
   border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--surface-2);
@@ -1145,3 +1145,18 @@ html.locked, html.locked body {
 
 .arena-result { flex-wrap: wrap; row-gap: 0; }
 .arena-breakdown { flex-basis: 100%; text-align: center; font-size: 0.78rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* the "coloured in" key for the proportion task */
+.swatch {
+  display: inline-block;
+  width: 1em; height: 1em;
+  margin: 0 0.12em;
+  vertical-align: -0.14em;
+  border-radius: 3px;
+  background: var(--shade);
+  box-shadow: 0 0 0 1.5px var(--text);
+}
+
+/* 7 columns when there's a decimal point key: 1-7 / 8 9 0 . ⌫ OK (wide) */
+.kp-grid-dec { grid-template-columns: repeat(7, 1fr); }
+.kp-grid-dec .kp-ok { grid-column: span 2; }

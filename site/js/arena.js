@@ -100,7 +100,8 @@ export class Arena {
     this.fit();
     const t0 = performance.now();
     const answer = await RENDERERS[task.type].run({
-      stage: this.stage, controls: this.controls, task, prompt: (t) => { this.prompt.textContent = t; },
+      stage: this.stage, controls: this.controls, task,
+      prompt: (t) => { if (typeof t === 'string') this.prompt.textContent = t; else this.prompt.replaceChildren(t); },
     });
     this.stage.clearHandlers();
     this.controls.clear();

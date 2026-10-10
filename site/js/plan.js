@@ -1,11 +1,11 @@
-// A day's five tasks, generated from the date alone: everyone in the world gets identical tasks, with no server.
+// A day's tasks (every type in the pool, once each, in a seeded order), generated from the date alone: everyone in the world gets identical tasks, with no server.
 // Shared by the site, the tests and the leaderboard worker (which regenerates the day to score answers itself).
 //
 // NEVER change what an existing day generates. Golden hashes in test/fixtures/golden.json catch it. To change a
 // generator, gate the change on a future date (if (day >= '2027-01-01') ...) and add golden days after it.
 import { dayDifficulty, dayNumber, weekday } from './daily.js';
 import { rngFor } from './rng.js';
-import { TASKS_PER_DAY, speedFactor, withSpeed } from './scoring.js';
+import { speedFactor, withSpeed } from './scoring.js';
 import { POOLS, TASKS } from './tasks/index.js';
 
 export function poolFor(day) {
@@ -19,8 +19,8 @@ export function dayPlan(day) {
   const difficulty = dayDifficulty(day);
   const sunday = weekday(day) === 0;
   const rng = rngFor('perceptle', day, 'plan');
-  const types = rng.shuffle([...poolFor(day)]).slice(0, TASKS_PER_DAY);
-  // Sunday: one of the five is the "illusion special"
+  const types = rng.shuffle([...poolFor(day)]); // all of them, in a seeded order
+  // Sunday: one of the tasks is the "illusion special"
   let special = -1;
   if (sunday) {
     const capable = types.filter((t) => TASKS[t].illusionCapable);

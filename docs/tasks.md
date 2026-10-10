@@ -3,8 +3,8 @@
 ## How a day is made
 `dayPlan(day)` in `site/js/plan.js`:
 1. Difficulty from the UTC weekday (`site/js/daily.js`).
-2. A seeded shuffle of the day's pool (`POOLS` in `site/js/tasks/index.js`) picks 5 different types and their order.
-3. On Sunday, one of those five (an illusion-capable type) is the **illusion special**.
+2. A seeded shuffle of the day's pool (`POOLS` in `site/js/tasks/index.js`) is played in full: every type once, in a seeded order.
+3. On Sunday, one of them (an illusion-capable type) is the **illusion special**.
 4. Each task gets its own seeded stream, `rngFor('perceptle', day, slot, type)`, and its generator makes the params
    (truth included). Heavy display data (dot positions, shaded pieces) comes from `layout()`/`shadedPieces()`,
    also seeded, so the worker never has to compute it.
