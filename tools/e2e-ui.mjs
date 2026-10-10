@@ -19,7 +19,8 @@ const srv = await serve(8082);
 const browser = await chromium.launch({ executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: true });
 let failures = 0;
 const check = (label, ok, detail = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${detail ? '  ' + detail : ''}`); if (!ok) failures++; };
-const url = (q = '') => `http://localhost:8082/${q}${q ? '&' : '?'}api=${useApi ? encodeURIComponent(API) : 'off'}`;
+const HUB = process.env.HUB || 'http://127.0.0.1:8831'; // jacob.gg hub worker (ratings), run from the jacob.gg repo
+const url = (q = '') => `http://localhost:8082/${q}${q ? '&' : '?'}api=${useApi ? encodeURIComponent(API) : 'off'}&hub=${encodeURIComponent(HUB)}`;
 
 /** Click a stage point given in stage units. */
 async function tapStage(page, x, y) {
