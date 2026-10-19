@@ -42,6 +42,7 @@ function phase(id) {
 }
 let booted = false;
 const pad = (n) => String(n).padStart(2, '0');
+const short = (msg) => (String(msg).length > 140 ? `${String(msg).slice(0, 139)}…` : String(msg)); // server text in the UI
 const total = (rounds) => round2(rounds.reduce((a, r) => a + (r?.points || 0), 0));
 
 function tickCountdown() {
@@ -68,7 +69,7 @@ function submit(day, round, answer, ms) {
   if (!api.enabled()) return;
   api.submitRound({ day, round, answer, ms, name: api.savedName() })
     .then(() => renderBoard())
-    .catch((e) => { $('board-note').textContent = `Couldn't save to the leaderboard: ${e.message}`; show('board-note', true); });
+    .catch((e) => { $('board-note').textContent = `Couldn't save to the leaderboard: ${short(e.message)}`; show('board-note', true); });
 }
 
 // --- views ----------------------------------------------------------------------------------------
@@ -212,7 +213,7 @@ async function renderBoard() {
   $('board-title').textContent = late ? `Played later: ${day}` : "Today's leaderboard";
   let b;
   try { b = await api.board(day, late); }
-  catch (e) { $('board-note').textContent = `Leaderboard unavailable: ${e.message}`; show('board-note', true); return; }
+  catch (e) { $('board-note').textContent = `Leaderboard unavailable: ${short(e.message)}`; show('board-note', true); return; }
   show('board-note', false);
   const plan = dayPlan(day);
   $('players').textContent = b.players ? `${b.players} player${b.players === 1 ? '' : 's'}` : '';
@@ -222,9 +223,9 @@ async function renderBoard() {
     : el('li', { class: `row${r.you ? ' me' : ''}` },
       el('span', { class: 'row-rank', text: `${r.rank}` }),
       el('div', { class: 'row-main' },
-        el('div', { class: 'row-name', text: r.name }),
-        el('div', { class: 'row-sub', title: r.rounds.map((p, i) => `${TASKS[plan.tasks[i].type].name} ${fmt2(p)}`).join(', ') },
-          el('span', { class: 'row-emoji', text: r.rounds.map(scoreBlock).join('') }),
+        el('div', { class: 'row-name', text: r.name || '', title: r.name || '', dir: 'auto' }),
+        el('div', { class: 'row-sub', title: (r.rounds || []).map((p, i) => `${TASKS[plan.tasks[i].type].name} ${fmt2(p)}`).join(', ') },
+          el('span', { class: 'row-emoji', text: (r.rounds || []).map(scoreBlock).join('') }),
           r.played < TASKS_PER_DAY ? ` · ${r.played}/${TASKS_PER_DAY} tasks` : '')),
       el('span', { class: 'row-score', text: fmt2(r.total) }))));
   show('board-empty', !b.top.length);
