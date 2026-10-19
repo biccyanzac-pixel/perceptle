@@ -1,6 +1,16 @@
 /* The house base (colours, font, page, masthead) comes from the jacob.gg kit, loaded first:
    https://biccyanzac-pixel.github.io/jacob.gg/kit/jgg.css. This file only adds the game's own components. */
 
+/* --- touch ---
+   Phones paint a grey flash over anything tapped. It's off here, so every tappable control below has its own
+   :active state instead (scale for buttons, a background change for list rows, colour only for keypad keys).
+   Hover styles sit inside @media (hover: hover) and (pointer: fine): on touch, :hover sticks after a tap.
+   Motion tokens come from the kit; the fallbacks keep this working with an older kit. */
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* --- cards --- */
 
 .card {
@@ -87,6 +97,7 @@ textarea {
   width: 100%;
   padding: 0.7rem 0.85rem;
   font: inherit;
+  font-size: max(16px, 1em); /* under 16px, iOS zooms the page on focus */
   color: var(--text);
   background: var(--surface-2);
   border: 1px solid var(--border);
@@ -122,11 +133,20 @@ textarea:focus-visible,
   border: 0;
   border-radius: 10px;
   cursor: pointer;
-  transition: filter 0.15s ease, opacity 0.15s ease;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: filter 0.15s ease, opacity 0.15s ease,
+    transform var(--jgg-t-press, 120ms) var(--jgg-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
 }
 
-.submit:hover:not(:disabled) {
-  filter: brightness(1.08);
+@media (hover: hover) and (pointer: fine) {
+  .submit:hover:not(:disabled) {
+    filter: brightness(1.08);
+  }
+}
+
+.submit:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .submit:disabled {
@@ -657,6 +677,13 @@ textarea:focus-visible,
   font: inherit;
   font-weight: 600;
   cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: transform var(--jgg-t-press, 120ms) var(--jgg-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+}
+
+.archive-browse:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .archive-list {
@@ -668,6 +695,7 @@ textarea:focus-visible,
   gap: 0.5rem;
   max-height: 16rem;
   overflow-y: auto;
+  overscroll-behavior: contain; /* reaching the end doesn't scroll the page behind */
 }
 
 .archive-list-item {
@@ -683,10 +711,20 @@ textarea:focus-visible,
   padding: 0.6rem 0.8rem;
   font: inherit;
   cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: background-color var(--jgg-t-press, 120ms) var(--jgg-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
 }
 
-.archive-list-item:hover {
-  border-color: var(--accent);
+@media (hover: hover) and (pointer: fine) {
+  .archive-list-item:hover {
+    border-color: var(--accent);
+  }
+}
+
+/* full-width row: a background change, not a scale */
+.archive-list-item:active {
+  background: var(--accent-soft);
 }
 
 .archive-list-day {
@@ -783,9 +821,11 @@ textarea:focus-visible,
   cursor: pointer;
 }
 
-.feedback-toggle:hover {
-  color: var(--text);
-  border-color: var(--accent);
+@media (hover: hover) and (pointer: fine) {
+  .feedback-toggle:hover {
+    color: var(--text);
+    border-color: var(--accent);
+  }
 }
 
 .feedback-form {
@@ -806,6 +846,7 @@ a { color: var(--accent); }
 .footer a { color: var(--muted); }
 
 .archive-list-item { background: var(--surface-2); }
+.archive-list-item:active { background: var(--accent-soft); }
 
 /* --- perceptle -------------------------------------------------------------- */
 
@@ -889,6 +930,7 @@ a { color: var(--accent); }
   min-width: 0;
   padding: 0.5rem 0.6rem;
   font: inherit;
+  font-size: max(16px, 1em); /* under 16px, iOS zooms the page on focus */
   color: var(--text);
   background: var(--surface-2);
   border: 1px solid var(--border);
@@ -912,8 +954,14 @@ html.locked, html.locked body {
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
-  padding: max(10px, env(safe-area-inset-top)) 16px max(12px, env(safe-area-inset-bottom));
+  /* every side touches a screen edge, so every side clears the notch / home bar (left and right in landscape) */
+  padding:
+    max(10px, env(safe-area-inset-top, 0px))
+    max(16px, env(safe-area-inset-right, 0px))
+    max(12px, env(safe-area-inset-bottom, 0px))
+    max(16px, env(safe-area-inset-left, 0px));
   background: var(--bg);
+  overscroll-behavior: none;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
@@ -953,6 +1001,11 @@ html.locked, html.locked body {
   border: 1px solid var(--border);
   border-radius: 8px;
   cursor: pointer;
+  transition: transform var(--jgg-t-press, 120ms) var(--jgg-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+}
+
+.arena-close:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .arena-prompt {
@@ -1025,7 +1078,9 @@ html.locked, html.locked body {
   border: 0;
   border-radius: 12px;
   cursor: pointer;
+  transition: transform var(--jgg-t-press, 120ms) var(--jgg-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
 }
+.ctl-btn:active:not(:disabled) { transform: scale(0.97); }
 .ctl-btn:disabled { opacity: 0.45; cursor: default; }
 .ctl-note { margin: 0; text-align: center; color: var(--muted); font-size: 0.92rem; }
 
@@ -1056,6 +1111,7 @@ html.locked, html.locked body {
   border-radius: 10px;
   cursor: pointer;
   touch-action: manipulation;
+  transition: background-color 80ms ease-out; /* keys are hit fast: colour only, no movement */
 }
 .kp-key:active { background: var(--accent-soft); }
 .kp-ok { color: #fff; background: var(--accent); border-color: var(--accent); }
@@ -1084,3 +1140,14 @@ html.locked, html.locked body {
 /* 7 columns when there's a decimal point key: 1-7 / 8 9 0 . ⌫ OK (wide) */
 .kp-grid-dec { grid-template-columns: repeat(7, 1fr); }
 .kp-grid-dec .kp-ok { grid-column: span 2; }
+
+/* Reduce motion: presses keep a cue, but nothing moves. */
+@media (prefers-reduced-motion: reduce) {
+  .submit:active:not(:disabled),
+  .archive-browse:active:not(:disabled),
+  .arena-close:active:not(:disabled),
+  .ctl-btn:active:not(:disabled) {
+    transform: none;
+    opacity: 0.85;
+  }
+}
