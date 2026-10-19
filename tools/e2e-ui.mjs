@@ -22,6 +22,10 @@ const check = (label, ok, detail = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}
 const HUB = process.env.HUB || 'http://127.0.0.1:8831'; // jacob.gg hub worker (ratings), run from the jacob.gg repo
 const url = (q = '') => `http://localhost:8082/${q}${q ? '&' : '?'}api=${useApi ? encodeURIComponent(API) : 'off'}&hub=${encodeURIComponent(HUB)}`;
 
+/** A score's final value, even mid count-up (JGG.motion.settle hides the ticking number from screen readers and
+ *  puts the final value in a visually hidden span straight after it). */
+const finalText = (page, sel) => page.$eval(sel, (e) => (e.getAttribute('aria-hidden') === 'true' ? e.nextElementSibling : e).textContent);
+
 /** Click a stage point given in stage units. */
 async function tapStage(page, x, y) {
   const box = await page.locator('.stage-canvas').boundingBox();
@@ -94,7 +98,7 @@ async function playDay(page, tag, shots) {
     const exact = i !== 2; // get task 3 deliberately wrong
     await answer(page, task, exact);
     await page.waitForSelector('.arena-result:not([hidden])');
-    const pts = Number(await page.textContent('.arena-points'));
+    const pts = Number(await finalText(page, '.arena-points'));
     expected[i] = pts;
     const okScore = exact ? pts >= (task.type === 'timing' ? 85 : task.type === 'area' ? 90 : 95) : pts < 95;
     check(`${tag} task ${i + 1} (${task.type}) scored ${exact ? 'near 100 when right' : 'less when wrong'}`, okScore, String(pts));
@@ -102,7 +106,7 @@ async function playDay(page, tag, shots) {
     await page.click('.ctl-btn');
   }
   await page.waitForSelector('#done:not([hidden])');
-  const totalShown = Number(await page.textContent('#daily-score'));
+  const totalShown = Number(await finalText(page, '#daily-score'));
   check(`${tag} total is the sum of the tasks`, Math.abs(totalShown - expected.reduce((a, b) => a + b, 0)) < 0.005, String(totalShown));
   check(`${tag} page unlocked after the game`, !(await page.evaluate(() => document.documentElement.classList.contains('locked'))));
   if (shots) await page.screenshot({ path: `tools/results/${tag}-4-done.png`, fullPage: true });
@@ -131,7 +135,7 @@ if (useApi) {
 }
 await phone.reload();
 await phone.waitForSelector('#done:not([hidden])');
-check('finished state survives a reload', Number(await phone.textContent('#daily-score')) === scoreP);
+check('finished state survives a reload', Number(await finalText(phone, '#daily-score')) === scoreP);
 check('practice unlocked after finishing', await phone.isVisible('#practice'));
 await phone.click('#practice-start');
 await phone.waitForSelector('.arena .arena-close');
