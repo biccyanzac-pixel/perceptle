@@ -57,6 +57,11 @@ a {
   color: var(--accent);
 }
 
+#players,
+.countdown {
+  white-space: nowrap; /* "1284 players", "Next in 04:03:23" stay on one line; the title beside them wraps */
+}
+
 .challenge-label {
   margin-bottom: 0.35rem;
 }
@@ -179,7 +184,7 @@ input[type="text"]:focus-visible,
 
 .row {
   display: grid;
-  grid-template-columns: 1.75rem minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto; /* rank grows past 999 instead of overflowing */
   align-items: center;
   gap: 0.75rem;
   padding: 0.6rem 0.65rem;
@@ -197,6 +202,7 @@ input[type="text"]:focus-visible,
 }
 
 .row-rank {
+  min-width: 1.75rem;
   font-size: 0.85rem;
   font-weight: 650;
   color: var(--muted);
@@ -221,16 +227,32 @@ input[type="text"]:focus-visible,
 .row-sub {
   font-size: 0.8rem;
   color: var(--muted);
+  overflow: hidden; /* never pushes into the score; the full breakdown is in its title */
 }
 
+/* the 8 blocks never split; " · 3/8 tasks" wraps under them on a narrow phone */
 .row-emoji {
   font-size: 0.8rem;
   letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+/* at 320-360 px the 8 blocks only fit on one line a little smaller */
+@media (max-width: 360px) {
+  .row {
+    gap: 0.6rem;
+  }
+  .row-emoji {
+    font-size: 0.7rem;
+    letter-spacing: 0;
+  }
 }
 
 .row-score {
   font-weight: 680;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-align: right;
 }
 
 .row-gap {
@@ -250,6 +272,7 @@ input[type="text"]:focus-visible,
   margin: 0.9rem 0 0;
   font-size: 0.82rem;
   color: var(--muted);
+  overflow-wrap: anywhere; /* server error text can hold long unbroken strings */
 }
 
 /* --- footer --- */
@@ -340,7 +363,7 @@ input[type="text"]:focus-visible,
 
 .archive-browse {
   background: var(--accent);
-  color: var(--accent-contrast, #111);
+  color: #fff; /* same as .submit: dark text on the accent was low contrast in light mode */
   border: none;
   border-radius: 0.5rem;
   padding: 0.5rem 1rem;
@@ -371,6 +394,7 @@ input[type="text"]:focus-visible,
 
 .archive-list-item {
   width: 100%;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
@@ -396,6 +420,11 @@ input[type="text"]:focus-visible,
 /* full-width row: a background change, not a scale */
 .archive-list-item:active {
   background: var(--accent-soft);
+}
+
+.archive-list-day,
+.archive-list-prompt {
+  overflow-wrap: anywhere;
 }
 
 .archive-list-day {
@@ -448,6 +477,8 @@ input[type="text"]:focus-visible,
 }
 
 .chip {
+  max-width: 100%;
+  overflow-wrap: anywhere;
   font-size: 0.85rem;
   font-weight: 600;
   padding: 0.25rem 0.7rem;
@@ -461,19 +492,23 @@ input[type="text"]:focus-visible,
 
 #start { width: 100%; }
 
-/* results: one bar per task */
+/* results: one bar per task. The rows share one grid (subgrid), so the score column is as wide as the widest
+   score ("100.00", "0 (left)") and the bars still line up. Without subgrid, each row uses the fixed columns. */
 .bars {
   list-style: none;
   margin: 1.3rem 0 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
+  display: grid;
+  grid-template-columns: minmax(0, 7.5rem) minmax(0, 1fr) auto;
+  column-gap: 0.6rem;
+  row-gap: 0.55rem;
 }
 
 .bar-row {
+  grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: 7.5rem minmax(0, 1fr) 3.2rem;
+  grid-template-columns: 7.5rem minmax(0, 1fr) 3.6rem;
+  grid-template-columns: subgrid;
   align-items: center;
   gap: 0.6rem;
   font-size: 0.9rem;
@@ -485,7 +520,7 @@ input[type="text"]:focus-visible,
 .bar-fill.good { background: var(--good); }
 .bar-fill.ok { background: var(--ok); }
 .bar-fill.bad { background: var(--bad); }
-.bar-score { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.bar-score { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 /* Straight after the last task (app.js adds .grow), the bars grow in turn: 320 ms each, 50 ms apart (--jgg-i,
    capped at the 7th bar like the kit's reveal).
@@ -691,6 +726,7 @@ html.locked, html.locked body {
 }
 .kp-key:active { background: var(--accent-soft); }
 .kp-ok { color: #fff; background: var(--accent); border-color: var(--accent); }
+.kp-ok:active:not(:disabled) { background: color-mix(in srgb, var(--accent) 78%, #000); } /* stays accent when pressed */
 .kp-ok:disabled { opacity: 0.45; cursor: default; }
 
 .zoom-note { margin: 0; font-size: 0.8rem; color: var(--bad); text-align: center; }

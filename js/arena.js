@@ -48,7 +48,8 @@ export class Arena {
       this.closeBtn.hidden = false;
       this.closeBtn.addEventListener('click', () => { this.close(); onClose?.(); });
     }
-    this.ro = new ResizeObserver(() => this.fit());
+    // fit() resizes the canvas inside the observed box: doing it next frame avoids WebKit's "ResizeObserver loop" error
+    this.ro = new ResizeObserver(() => requestAnimationFrame(() => this.fit()));
   }
 
   /** enter: play the shared entrance (220 ms). Only when no task starts underneath it (the countdown covers it). */
@@ -107,7 +108,7 @@ export class Arena {
   async play(task, { label }) {
     const def = TASKS[task.type];
     this.result.classList.remove('shown');
-    this.name.textContent = `${label} · ${def.emoji} ${def.name}`;
+    this.name.textContent = this.name.title = `${label} · ${def.emoji} ${def.name}`; // full text when it truncates
     this.badge.hidden = !task.illusion;
     this.badge.textContent = task.illusion ? `✨ Illusion special: ${def.illusionName}` : '';
     this.prompt.textContent = def.prompt(task.params);
