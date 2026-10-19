@@ -1,13 +1,20 @@
 // The stage: a square canvas drawn in stage units (0..1 on both axes), the same on every screen.
 // Line widths and sizes are in stage units too, so a phone and a desktop see the same picture, only scaled.
 
+// The theme colours, read once and cached. Reading them (getComputedStyle) on every animation frame was most of
+// the cost of the reveal animations on a slow phone. The cache is dropped when the colour scheme changes and on
+// resize; each new object means "colours changed", which also invalidates the offscreen layers below.
+let themeCache = null;
+try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { themeCache = null; }); } catch { /* old browsers */ }
+
 export function themeColours() {
+  if (themeCache) return themeCache;
   const cs = getComputedStyle(document.documentElement);
   const v = (n) => cs.getPropertyValue(n).trim();
-  return {
+  return (themeCache = {
     bg: v('--stage'), ink: v('--ink'), muted: v('--muted'), accent: v('--accent'), good: v('--good'),
     bad: v('--bad'), fill: v('--fill'), shade: v('--shade'), faint: v('--faint'), empty: v('--empty'),
-  };
+  });
 }
 
 export class Stage {
@@ -44,11 +51,12 @@ export class Stage {
     this.dpr = dpr;
     this.canvas.style.width = this.canvas.style.height = `${this.S}px`;
     this.canvas.width = this.canvas.height = Math.round(this.S * dpr);
+    themeCache = null; // a resize is rare: re-read the colours then, in case anything changed
     this.redraw();
   }
 
   /** Set what to draw; it's called again on resize. Stops any running animation. */
-  draw(fn) { this.animId = (this.animId || 0) + 1; this.drawFn = fn; this.redraw(); }
+  draw(fn) { this.animId = (this.animId || 0) + 1; this.layers = null; this.drawFn = fn; this.redraw(); }
 
   /**
    * Animate for `ms`: fn(stage, t) with t eased 0..1 each frame, then it stays at t = 1 (and redraws on resize).
@@ -56,6 +64,7 @@ export class Stage {
    */
   animate(ms, fn) {
     const id = (this.animId = (this.animId || 0) + 1);
+    this.layers = null;
     const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     const t0 = performance.now();
     const ease = (x) => (x < 0.5 ? 2 * x * x : 1 - ((-2 * x + 2) ** 2) / 2);
@@ -83,6 +92,40 @@ export class Stage {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     if (this.drawFn) this.drawFn(this);
+  }
+
+  /**
+   * Draw the static part of a picture once into an offscreen canvas and copy it in on every redraw, so an
+   * animation only redraws what moves. Rebuilt when the size or the colours change; dropped by draw()/animate().
+   * add(L), if given, runs on every call with the layer as the drawing target, to paint on what's new since the
+   * last frame (keep its progress on L, which starts fresh whenever the layer is rebuilt).
+   */
+  layer(key, fn, add) {
+    const w = this.canvas.width;
+    let L = this.layers?.get(key);
+    if (!L || L.w !== w || L.c !== this.c) {
+      const cv = L?.cv || document.createElement('canvas');
+      cv.width = cv.height = w;
+      const main = this.ctx;
+      const k = this.S * this.dpr;
+      this.ctx = cv.getContext('2d');
+      this.ctx.setTransform(k, 0, 0, k, 0, 0);
+      this.ctx.lineCap = 'round';
+      this.ctx.lineJoin = 'round';
+      try { fn(this); } finally { this.ctx = main; }
+      L = { cv, w, c: this.c };
+      (this.layers ||= new Map()).set(key, L);
+    }
+    if (add) {
+      const main = this.ctx;
+      this.ctx = L.cv.getContext('2d');
+      try { add(L); } finally { this.ctx = main; }
+    }
+    const { ctx } = this;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(L.cv, 0, 0);
+    ctx.restore();
   }
 
   onPointer(h) { this.handlers.add(h); return () => this.handlers.delete(h); }
