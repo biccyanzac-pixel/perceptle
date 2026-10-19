@@ -137,9 +137,10 @@ export class Arena {
       el('span', { class: 'arena-out-of', text: '/ 100' }),
       el('span', { class: 'arena-breakdown', text: result.speed === null ? 'accuracy only' : `accuracy ${fmt2(result.acc)} · speed ${Math.round(result.speed * 100)}%` }));
     this.result.classList.add('shown');
-    // The points rise in (320 ms) and count up (a tap skips it); Next below is tappable from the first frame.
+    // Seen 8 times a day, so quick: the points enter (220 ms) and count up in 280 ms (a tap skips it); Next below is
+    // tappable from the first frame. The once-a-day total keeps the longer count-up.
     const m = motion();
-    if (m) { m.enter(this.result, { kind: 'reveal' }); m.settle(points, result.points, { format: fmt2 }); }
+    if (m) { m.enter(this.result); m.settle(points, result.points, { format: fmt2, duration: 280 }); }
     await this.controls.button(next).done;
   }
 }
