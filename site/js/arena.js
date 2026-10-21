@@ -11,6 +11,19 @@ const MAX_STAGE = 620;
 const block = (e) => e.preventDefault();
 const blockZoomWheel = (e) => { if (e.ctrlKey) e.preventDefault(); };
 const blockZoomKeys = (e) => { if ((e.ctrlKey || e.metaKey) && ['+', '-', '=', '0'].includes(e.key)) e.preventDefault(); };
+// jacob.gg motion (kit/jgg.js); may be missing, so each use has a plain fallback that ends in the same state.
+const motion = () => window.JGG?.motion;
+const reduced = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+const EASE_OUT = 'cubic-bezier(0.23, 1, 0.32, 1)'; // --jgg-ease-out
+
+/** A countdown digit arriving: scale .96 -> 1 with a fade, 220 ms (a 160 ms fade under reduce motion). */
+function digitIn(node) {
+  if (!node.animate) return;
+  node.getAnimations().forEach((a) => a.cancel());
+  const calm = reduced();
+  node.animate(calm ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 0, transform: 'scale(0.96)' }, { opacity: 1, transform: 'none' }],
+    { duration: calm ? 160 : 220, easing: calm ? 'ease' : EASE_OUT });
+}
 
 export class Arena {
   constructor({ closable = false, onClose } = {}) {
@@ -35,11 +48,14 @@ export class Arena {
       this.closeBtn.hidden = false;
       this.closeBtn.addEventListener('click', () => { this.close(); onClose?.(); });
     }
-    this.ro = new ResizeObserver(() => this.fit());
+    // fit() resizes the canvas inside the observed box: doing it next frame avoids WebKit's "ResizeObserver loop" error
+    this.ro = new ResizeObserver(() => requestAnimationFrame(() => this.fit()));
   }
 
-  open() {
+  /** enter: play the shared entrance (220 ms). Only when no task starts underneath it (the countdown covers it). */
+  open({ enter = false } = {}) {
     document.body.append(this.root);
+    if (enter) motion()?.enter(this.root);
     document.documentElement.classList.add('locked');
     window.scrollTo(0, 0);
     document.addEventListener('gesturestart', block);
@@ -82,6 +98,7 @@ export class Arena {
     this.overlay.hidden = false;
     for (let n = from; n > 0; n--) {
       this.overlay.textContent = String(n);
+      digitIn(this.overlay); // decoration only: the 650 ms steps below are the countdown's timing
       await new Promise((r) => setTimeout(r, 650));
     }
     this.overlay.hidden = true;
@@ -91,7 +108,7 @@ export class Arena {
   async play(task, { label }) {
     const def = TASKS[task.type];
     this.result.classList.remove('shown');
-    this.name.textContent = `${label} · ${def.emoji} ${def.name}`;
+    this.name.textContent = this.name.title = `${label} · ${def.emoji} ${def.name}`; // full text when it truncates
     this.badge.hidden = !task.illusion;
     this.badge.textContent = task.illusion ? `✨ Illusion special: ${def.illusionName}` : '';
     this.prompt.textContent = def.prompt(task.params);
@@ -114,11 +131,16 @@ export class Arena {
     const def = TASKS[task.type];
     RENDERERS[task.type].reveal({ stage: this.stage, task, answer }); // may animate; Next works straight away
     this.prompt.textContent = `${def.truthText(task.params)[0].toUpperCase()}${def.truthText(task.params).slice(1)} · ${def.answerText(task.params, answer)}`;
+    const points = el('span', { class: `arena-points ${result.points >= 60 ? 'good' : result.points >= 30 ? 'ok' : 'bad'}`, text: fmt2(result.points) });
     this.result.replaceChildren(
-      el('span', { class: `arena-points ${result.points >= 60 ? 'good' : result.points >= 30 ? 'ok' : 'bad'}`, text: fmt2(result.points) }),
+      points,
       el('span', { class: 'arena-out-of', text: '/ 100' }),
       el('span', { class: 'arena-breakdown', text: result.speed === null ? 'accuracy only' : `accuracy ${fmt2(result.acc)} · speed ${Math.round(result.speed * 100)}%` }));
     this.result.classList.add('shown');
+    // Seen 8 times a day, so quick: the points enter (220 ms) and count up in 280 ms (a tap skips it); Next below is
+    // tappable from the first frame. The once-a-day total keeps the longer count-up.
+    const m = motion();
+    if (m) { m.enter(this.result); m.settle(points, result.points, { format: fmt2, duration: 280 }); }
     await this.controls.button(next).done;
   }
 }

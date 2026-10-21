@@ -2,7 +2,9 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6f7fb" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0b0c10" />
     <title>Perceptle</title>
     <meta name="description" content="Daily perception olympics: eight quick estimation tasks. Count, angles, areas, midpoints and more. No knowledge needed, just eyes and instinct." />
     <meta name="color-scheme" content="dark light" />
@@ -36,7 +38,7 @@
           <form class="play" id="start-form">
             <label class="field" id="name-field">
               <span class="label">Your name</span>
-              <input id="name" type="text" maxlength="20" autocomplete="nickname" placeholder="e.g. jacob" required />
+              <input id="name" type="text" maxlength="20" autocomplete="nickname" autocapitalize="none" autocorrect="off" enterkeyhint="go" placeholder="e.g. jacob" required />
             </label>
             <p class="playing-as" id="playing-as" hidden></p>
             <p class="error" id="start-error" role="alert" hidden></p>

@@ -1,6 +1,31 @@
 /* The house base (colours, font, page, masthead) comes from the jacob.gg kit, loaded first:
    https://biccyanzac-pixel.github.io/jacob.gg/kit/jgg.css. This file only adds the game's own components. */
 
+/* --- touch ---
+   Phones paint a grey flash over anything tapped. It's off here, so every tappable control below has its own
+   :active state instead (scale for buttons, a background change for list rows, colour only for keypad keys).
+   Hover styles sit inside @media (hover: hover) and (pointer: fine): on touch, :hover sticks after a tap.
+   Motion tokens come from the kit; the fallbacks keep this working with an older kit.
+
+   --- motion (jacob.gg docs/motion-system.md) ---
+   Only transform and opacity move. What moves here: the intro/results crossfade and the archive list (JGG.motion
+   in app.js), the arena entrance, countdown digits and points reveal (arena.js), and the results bars (.bar-fill.grow
+   below). Each has a plain fallback when the kit hasn't loaded, and under reduce motion it fades or doesn't move.
+   Never animated: keypad keys (colour only), leaderboard rows, the clock, and the tasks themselves. */
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* [hidden] always wins, even against a later class rule that sets display. */
+[hidden] {
+  display: none !important;
+}
+
+a {
+  color: var(--accent);
+}
+
 /* --- cards --- */
 
 .card {
@@ -9,10 +34,6 @@
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 1.5rem;
-}
-
-.card[aria-busy="true"] .prompt {
-  opacity: 0.5;
 }
 
 .card-top {
@@ -36,6 +57,11 @@
   color: var(--accent);
 }
 
+#players,
+.countdown {
+  white-space: nowrap; /* "1284 players", "Next in 04:03:23" stay on one line; the title beside them wraps */
+}
+
 .challenge-label {
   margin-bottom: 0.35rem;
 }
@@ -47,16 +73,6 @@
   font-weight: 650;
   letter-spacing: -0.02em;
   text-wrap: balance;
-}
-
-.hint {
-  margin: 0.6rem 0 0;
-  color: var(--muted);
-  font-size: 0.92rem;
-}
-
-.hint a {
-  color: var(--accent);
 }
 
 /* --- form --- */
@@ -82,34 +98,21 @@
   color: var(--muted);
 }
 
-input[type="text"],
-textarea {
+input[type="text"] {
   width: 100%;
   padding: 0.7rem 0.85rem;
   font: inherit;
+  font-size: max(16px, 1em); /* under 16px, iOS zooms the page on focus */
   color: var(--text);
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: 10px;
-  resize: vertical;
 }
 
 input[type="text"]:focus-visible,
-textarea:focus-visible,
 .submit:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-}
-
-.counter {
-  align-self: flex-end;
-  font-size: 0.75rem;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
-
-.counter.near {
-  color: var(--bad);
 }
 
 .submit {
@@ -122,38 +125,26 @@ textarea:focus-visible,
   border: 0;
   border-radius: 10px;
   cursor: pointer;
-  transition: filter 0.15s ease, opacity 0.15s ease;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: filter var(--jgg-t-hover, 150ms) ease, opacity var(--jgg-t-hover, 150ms) ease,
+    transform 80ms var(--jgg-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
 }
 
-.submit:hover:not(:disabled) {
-  filter: brightness(1.08);
+@media (hover: hover) and (pointer: fine) {
+  .submit:hover:not(:disabled) {
+    filter: brightness(1.08);
+  }
+}
+
+.submit:active:not(:disabled) {
+  transform: scale(0.97);
+  transition-duration: var(--jgg-t-hover, 150ms), var(--jgg-t-hover, 150ms), var(--jgg-t-press, 120ms);
 }
 
 .submit:disabled {
   cursor: progress;
   opacity: 0.85;
-}
-
-.spinner {
-  display: none;
-  width: 0.95em;
-  height: 0.95em;
-  margin-left: 0.55em;
-  vertical-align: -0.12em;
-  border: 2px solid rgb(255 255 255 / 0.4);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-}
-
-.submit.busy .spinner {
-  display: inline-block;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 .fineprint {
@@ -173,29 +164,6 @@ textarea:focus-visible,
   border-radius: 10px;
 }
 
-/* --- result --- */
-
-.result {
-  margin-top: 1.75rem;
-  animation: rise 0.35s ease both;
-}
-
-@keyframes rise {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .result {
-    animation: none;
-  }
-  .spinner {
-    animation-duration: 2s;
-  }
-}
-
 .score {
   margin: 0.15rem 0 0;
   font-size: clamp(3.75rem, 18vw, 5.5rem);
@@ -204,29 +172,6 @@ textarea:focus-visible,
   letter-spacing: -0.045em;
   font-variant-numeric: tabular-nums;
   color: var(--accent);
-}
-
-.score.good {
-  color: var(--good);
-}
-
-.score.bad {
-  color: var(--bad);
-}
-
-.answer-label {
-  margin-top: 1.5rem;
-}
-
-.your-answer {
-  margin: 0.4rem 0 0;
-  padding: 0.75rem 1rem;
-  font-size: 1.02rem;
-  background: var(--surface-2);
-  border-left: 3px solid var(--accent);
-  border-radius: 0 10px 10px 0;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
 }
 
 /* --- leaderboard --- */
@@ -239,7 +184,7 @@ textarea:focus-visible,
 
 .row {
   display: grid;
-  grid-template-columns: 1.75rem minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto; /* rank grows past 999 instead of overflowing */
   align-items: center;
   gap: 0.75rem;
   padding: 0.6rem 0.65rem;
@@ -257,6 +202,7 @@ textarea:focus-visible,
 }
 
 .row-rank {
+  min-width: 1.75rem;
   font-size: 0.85rem;
   font-weight: 650;
   color: var(--muted);
@@ -278,53 +224,35 @@ textarea:focus-visible,
   text-overflow: ellipsis;
 }
 
-.row-answer {
-  font-size: 0.85rem;
+.row-sub {
+  font-size: 0.8rem;
   color: var(--muted);
+  overflow: hidden; /* never pushes into the score; the full breakdown is in its title */
+}
+
+/* the 8 blocks never split; " · 3/8 tasks" wraps under them on a narrow phone */
+.row-emoji {
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.row-attempts {
-  list-style: none;
-  margin: 0.2rem 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-}
-
-.row-attempt {
-  display: flex;
-  align-items: baseline;
-  gap: 0.4rem;
-  font-size: 0.82rem;
-  color: var(--muted);
-}
-
-.row-attempt-label {
-  flex: none;
-  font-variant-numeric: tabular-nums;
-}
-
-.row-attempt-answer {
-  flex: 1 1 auto;
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.row-attempt-score {
-  flex: none;
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
+/* at 320-360 px the 8 blocks only fit on one line a little smaller */
+@media (max-width: 360px) {
+  .row {
+    gap: 0.6rem;
+  }
+  .row-emoji {
+    font-size: 0.7rem;
+    letter-spacing: 0;
+  }
 }
 
 .row-score {
   font-weight: 680;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-align: right;
 }
 
 .row-gap {
@@ -340,6 +268,13 @@ textarea:focus-visible,
   font-size: 0.92rem;
 }
 
+.board-note {
+  margin: 0.9rem 0 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+  overflow-wrap: anywhere; /* server error text can hold long unbroken strings */
+}
+
 /* --- footer --- */
 
 .footer {
@@ -352,79 +287,21 @@ textarea:focus-visible,
   color: var(--muted);
 }
 
-/* --- judge loading --------------------------------------------------------- */
-
-.preparing {
-  margin-top: 1.5rem;
+.footer p + p {
+  margin-top: 0.35rem;
 }
 
-.preparing-row {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  font-size: 0.95rem;
-  margin-bottom: 0.7rem;
-}
-
-.spinner-ring {
-  width: 1rem;
-  height: 1rem;
-  flex: none;
-  border: 2px solid var(--border);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-.meter {
-  height: 7px;
-  background: var(--surface-2);
-  border-radius: 99px;
-  overflow: hidden;
-}
-
-.meter-fill {
-  height: 100%;
-  width: 0;
-  background: var(--accent);
-  border-radius: 99px;
-  transition: width 0.3s ease;
-}
-
-.preparing-note {
-  margin: 0.6rem 0 0;
-  font-size: 0.82rem;
+.footer a {
   color: var(--muted);
 }
 
-.board-note {
-  margin: 0.9rem 0 0;
-  font-size: 0.82rem;
-  color: var(--muted);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .spinner-ring {
-    animation-duration: 2.4s;
-  }
-}
-
-/* Belt-and-braces: guarantee [hidden] always wins regardless of any later
-   rule's specificity tie in the cascade (observed: the native UA default for
-   [hidden] can lose a same-specificity tie-break against an author class
-   selector that comes later in the stylesheet). */
-[hidden] {
-  display: none !important;
-}
-/* --- riddle framing ------------------------------------------------------- */
+/* --- intro ------------------------------------------------------------------ */
 
 .riddle-note {
   margin: 0.5rem 0 0;
   font-size: 0.88rem;
   color: var(--muted);
 }
-
-/* --- attempts (3-per-day, scored as an average) --------------------------- */
 
 .attempts-note {
   margin: 0.4rem 0 0;
@@ -433,86 +310,31 @@ textarea:focus-visible,
   color: var(--accent);
 }
 
-.yesterday-bonus-best {
-  margin-top: 1.1rem;
-  padding-top: 0.9rem;
-  border-top: 1px dashed var(--border);
-}
-
 .playing-as {
   margin: 0;
   font-size: 0.82rem;
   color: var(--muted);
 }
 
-.yesterday-prompt {
-  margin: 0.35rem 0 0.9rem;
-  font-size: 0.9rem;
-  color: var(--muted);
-}
-
-.bonus-teaser {
-  margin: 0.4rem 0 0;
-  font-size: 0.82rem;
-  color: var(--muted);
-}
+/* --- results (#done) ---------------------------------------------------------- */
 
 .attempts {
   margin-top: 1.5rem;
 }
 
+.out-of {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.share {
+  width: 100%;
+  margin-top: 1.1rem;
+}
+
 #daily-score-caption {
   margin-top: 0;
-}
-
-.attempt-list {
-  list-style: none;
-  margin: 1.3rem 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.attempt-row {
-  padding: 0.6rem 0.8rem;
-  border-radius: 10px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-}
-
-.attempt-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.attempt-label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--muted);
-}
-
-.attempt-score {
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  font-size: 1.05rem;
-}
-
-.attempt-score.good {
-  color: var(--good);
-}
-
-.attempt-score.bad {
-  color: var(--bad);
-}
-
-.attempt-answer {
-  margin: 0.35rem 0 0;
-  padding: 0;
-  border: 0;
-  font-size: 0.95rem;
-  overflow-wrap: anywhere;
 }
 
 .attempts-done {
@@ -523,115 +345,6 @@ textarea:focus-visible,
   background: var(--surface-2);
   border-radius: 10px;
   text-align: center;
-}
-
-.play-bonus-button {
-  display: block;
-  width: 100%;
-  margin: 0.75rem 0 0;
-  padding: 0.7rem 0.9rem;
-  font: inherit;
-  font-weight: 600;
-  color: var(--accent-contrast, #111);
-  background: var(--accent);
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-}
-
-.bonus-locked {
-  margin: 0.5rem 0 0;
-  padding: 0.7rem 0.9rem;
-  font-size: 0.88rem;
-  color: var(--muted);
-  background: var(--surface-2);
-  border-radius: 10px;
-}
-
-/* --- leaderboard privacy notice -------------------------------------------- */
-
-.board-locked {
-  margin: 0 0 1rem;
-  padding: 0.65rem 0.85rem;
-  font-size: 0.85rem;
-  color: var(--muted);
-  background: var(--surface-2);
-  border-radius: 10px;
-}
-
-/* --- yesterday's strongest interpretations --------------------------------- */
-
-.yesterday-rows {
-  list-style: none;
-  margin: 1rem 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.yesterday-row {
-  display: flex;
-  align-items: baseline;
-  gap: 0.75rem;
-  padding: 0.5rem 0.75rem;
-  border-radius: 10px;
-  background: var(--surface-2);
-}
-
-.yesterday-score {
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  color: var(--accent);
-  flex: none;
-  min-width: 3.5em;
-}
-
-.yesterday-answer {
-  overflow-wrap: anywhere;
-}
-
-.yesterday-empty {
-  margin: 0.75rem 0 0;
-  color: var(--muted);
-  font-size: 0.9rem;
-}
-
-.yesterday-best {
-  margin-top: 1.5rem;
-  padding-top: 1.25rem;
-  border-top: 1px solid var(--border);
-}
-
-.yesterday-best-summary {
-  margin: 0.5rem 0 0;
-  font-size: 0.95rem;
-}
-
-.yesterday-best-summary #yesterday-best-name {
-  font-weight: 700;
-}
-
-.yesterday-best-summary #yesterday-best-avg {
-  font-variant-numeric: tabular-nums;
-  color: var(--accent);
-  font-weight: 700;
-}
-
-/* --- indeterminate progress (model initializing, no byte progress) ------- */
-
-.meter-fill.indeterminate {
-  width: 40% !important;
-  animation: meter-sweep 1.1s ease-in-out infinite;
-}
-
-@keyframes meter-sweep {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(250%);
-  }
 }
 
 /* --- archive (replay a past day) ----------------------------------------- */
@@ -650,13 +363,21 @@ textarea:focus-visible,
 
 .archive-browse {
   background: var(--accent);
-  color: var(--accent-contrast, #111);
+  color: #fff; /* same as .submit: dark text on the accent was low contrast in light mode */
   border: none;
   border-radius: 0.5rem;
   padding: 0.5rem 1rem;
   font: inherit;
   font-weight: 600;
   cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: transform 80ms var(--jgg-ease-out, cubic-bezier(0.23, 1, 0.32, 1)); /* release snaps back; the press itself eases in over --jgg-t-press */
+}
+
+.archive-browse:active:not(:disabled) {
+  transform: scale(0.97);
+  transition-duration: var(--jgg-t-press, 120ms);
 }
 
 .archive-list {
@@ -668,25 +389,42 @@ textarea:focus-visible,
   gap: 0.5rem;
   max-height: 16rem;
   overflow-y: auto;
+  overscroll-behavior: contain; /* reaching the end doesn't scroll the page behind */
 }
 
 .archive-list-item {
   width: 100%;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
   text-align: left;
-  background: var(--panel);
+  background: var(--surface-2);
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 0.5rem;
   padding: 0.6rem 0.8rem;
   font: inherit;
   cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: background-color var(--jgg-t-press, 120ms) var(--jgg-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
 }
 
-.archive-list-item:hover {
-  border-color: var(--accent);
+@media (hover: hover) and (pointer: fine) {
+  .archive-list-item:hover {
+    border-color: var(--accent);
+  }
+}
+
+/* full-width row: a background change, not a scale */
+.archive-list-item:active {
+  background: var(--accent-soft);
+}
+
+.archive-list-day,
+.archive-list-prompt {
+  overflow-wrap: anywhere;
 }
 
 .archive-list-day {
@@ -704,108 +442,6 @@ textarea:focus-visible,
   color: var(--muted);
   font-size: 0.9rem;
 }
-
-.archive-challenge {
-  margin-top: 1.5rem;
-  padding-top: 1.25rem;
-  border-top: 1px solid var(--border);
-}
-
-.archive-boards {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.5rem;
-  margin-top: 1.5rem;
-}
-
-@media (min-width: 640px) {
-  .archive-boards {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-.archive-board .rows {
-  margin-top: 0.5rem;
-}
-
-.late-heading {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.late-badge {
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: none;
-  letter-spacing: normal;
-  color: var(--warning, #c77b2b);
-  background: color-mix(in srgb, var(--warning, #c77b2b) 15%, transparent);
-  border: 1px solid color-mix(in srgb, var(--warning, #c77b2b) 40%, transparent);
-  border-radius: 999px;
-  padding: 0.15rem 0.6rem;
-}
-
-/* --- bonus round ---------------------------------------------------------- */
-
-.bonus-note {
-  margin: 0.5rem 0 1rem;
-  color: var(--muted);
-  font-size: 0.9rem;
-}
-
-.bonus-board {
-  margin-top: 1.5rem;
-  padding-top: 1.25rem;
-  border-top: 1px solid var(--border);
-}
-
-.bonus-board .rows {
-  margin-top: 0.5rem;
-}
-/* --- feedback ------------------------------------------------------------ */
-
-.feedback {
-  margin-top: 1.25rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border);
-}
-
-.feedback-toggle {
-  background: none;
-  color: var(--muted);
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
-  padding: 0.45rem 0.8rem;
-  font: inherit;
-  font-size: 0.82rem;
-  cursor: pointer;
-}
-
-.feedback-toggle:hover {
-  color: var(--text);
-  border-color: var(--accent);
-}
-
-.feedback-form {
-  margin-top: 0.85rem;
-}
-
-a { color: var(--accent); }
-.out-of { margin: 0.2rem 0 0; color: var(--muted); font-size: 0.9rem; }
-
-.share { width: 100%; margin-top: 1.1rem; }
-
-.row-emoji { font-size: 0.8rem; letter-spacing: 0.05em; }
-
-.row-sub { font-size: 0.8rem; color: var(--muted); }
-
-.footer p + p { margin-top: 0.35rem; }
-
-.footer a { color: var(--muted); }
-
-.archive-list-item { background: var(--surface-2); }
 
 /* --- perceptle -------------------------------------------------------------- */
 
@@ -841,6 +477,8 @@ a { color: var(--accent); }
 }
 
 .chip {
+  max-width: 100%;
+  overflow-wrap: anywhere;
   font-size: 0.85rem;
   font-weight: 600;
   padding: 0.25rem 0.7rem;
@@ -854,19 +492,23 @@ a { color: var(--accent); }
 
 #start { width: 100%; }
 
-/* results */
+/* results: one bar per task. The rows share one grid (subgrid), so the score column is as wide as the widest
+   score ("100.00", "0 (left)") and the bars still line up. Without subgrid, each row uses the fixed columns. */
 .bars {
   list-style: none;
   margin: 1.3rem 0 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
+  display: grid;
+  grid-template-columns: minmax(0, 7.5rem) minmax(0, 1fr) auto;
+  column-gap: 0.6rem;
+  row-gap: 0.55rem;
 }
 
 .bar-row {
+  grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: 7.5rem minmax(0, 1fr) 3.2rem;
+  grid-template-columns: 7.5rem minmax(0, 1fr) 3.6rem;
+  grid-template-columns: subgrid;
   align-items: center;
   gap: 0.6rem;
   font-size: 0.9rem;
@@ -874,13 +516,23 @@ a { color: var(--accent); }
 
 .bar-label { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bar-track { height: 0.8rem; background: var(--surface-2); border: 1px solid var(--border); border-radius: 99px; overflow: hidden; }
-.bar-fill { display: block; height: 100%; border-radius: 99px; background: var(--accent); animation: grow 0.6s ease both; }
+.bar-fill { display: block; height: 100%; border-radius: 99px; background: var(--accent); transform-origin: left; }
 .bar-fill.good { background: var(--good); }
 .bar-fill.ok { background: var(--ok); }
 .bar-fill.bad { background: var(--bad); }
-.bar-score { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.bar-score { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
-@keyframes grow { from { width: 0; } }
+/* Straight after the last task (app.js adds .grow), the bars grow in turn: 320 ms each, 50 ms apart (--jgg-i,
+   capped at the 7th bar like the kit's reveal).
+   The width is the final value from the start, so a re-render without .grow shows them at once. */
+.bar-fill.grow {
+  animation: bar-grow var(--jgg-t-reveal, 320ms) var(--jgg-ease-out, cubic-bezier(0.23, 1, 0.32, 1)) backwards;
+  animation-delay: calc(min(var(--jgg-i, 0), 6) * var(--jgg-stagger, 50ms));
+}
+
+@keyframes bar-grow {
+  from { transform: scaleX(0); }
+}
 
 .practice { margin-top: 1.4rem; padding-top: 1.1rem; border-top: 1px solid var(--border); }
 .practice-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
@@ -889,6 +541,7 @@ a { color: var(--accent); }
   min-width: 0;
   padding: 0.5rem 0.6rem;
   font: inherit;
+  font-size: max(16px, 1em); /* under 16px, iOS zooms the page on focus */
   color: var(--text);
   background: var(--surface-2);
   border: 1px solid var(--border);
@@ -912,8 +565,14 @@ html.locked, html.locked body {
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
-  padding: max(10px, env(safe-area-inset-top)) 16px max(12px, env(safe-area-inset-bottom));
+  /* every side touches a screen edge, so every side clears the notch / home bar (left and right in landscape) */
+  padding:
+    max(10px, env(safe-area-inset-top, 0px))
+    max(16px, env(safe-area-inset-right, 0px))
+    max(12px, env(safe-area-inset-bottom, 0px))
+    max(16px, env(safe-area-inset-left, 0px));
   background: var(--bg);
+  overscroll-behavior: none;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
@@ -953,6 +612,12 @@ html.locked, html.locked body {
   border: 1px solid var(--border);
   border-radius: 8px;
   cursor: pointer;
+  transition: transform 80ms var(--jgg-ease-out, cubic-bezier(0.23, 1, 0.32, 1)); /* release snaps back; the press itself eases in over --jgg-t-press */
+}
+
+.arena-close:active:not(:disabled) {
+  transform: scale(0.97);
+  transition-duration: var(--jgg-t-press, 120ms);
 }
 
 .arena-prompt {
@@ -988,8 +653,7 @@ html.locked, html.locked body {
   font-size: clamp(4rem, 22vw, 8rem);
   font-weight: 750;
   color: var(--accent);
-  pointer-events: none;
-  animation: rise 0.3s ease both;
+  pointer-events: none; /* each digit animates in from arena.js (scale .96 -> 1 + fade, 220 ms) */
 }
 
 .arena-result {
@@ -1000,7 +664,7 @@ html.locked, html.locked body {
   min-height: 2.4rem;
   visibility: hidden;
 }
-.arena-result.shown { visibility: visible; }
+.arena-result.shown { visibility: visible; } /* JGG.motion reveals it (320 ms) as the points count up */
 .arena-points { font-size: 2.2rem; line-height: 1; font-weight: 750; font-variant-numeric: tabular-nums; color: var(--accent); }
 .arena-points.good { color: var(--good); }
 .arena-points.ok { color: var(--ok); }
@@ -1025,7 +689,9 @@ html.locked, html.locked body {
   border: 0;
   border-radius: 12px;
   cursor: pointer;
+  transition: transform 80ms var(--jgg-ease-out, cubic-bezier(0.23, 1, 0.32, 1)); /* release snaps back; the press itself eases in over --jgg-t-press */
 }
+.ctl-btn:active:not(:disabled) { transform: scale(0.97); transition-duration: var(--jgg-t-press, 120ms); }
 .ctl-btn:disabled { opacity: 0.45; cursor: default; }
 .ctl-note { margin: 0; text-align: center; color: var(--muted); font-size: 0.92rem; }
 
@@ -1056,16 +722,14 @@ html.locked, html.locked body {
   border-radius: 10px;
   cursor: pointer;
   touch-action: manipulation;
+  transition: background-color 80ms ease-out; /* keys are hit fast: colour only, no movement */
 }
 .kp-key:active { background: var(--accent-soft); }
 .kp-ok { color: #fff; background: var(--accent); border-color: var(--accent); }
+.kp-ok:active:not(:disabled) { background: color-mix(in srgb, var(--accent) 78%, #000); } /* stays accent when pressed */
 .kp-ok:disabled { opacity: 0.45; cursor: default; }
 
 .zoom-note { margin: 0; font-size: 0.8rem; color: var(--bad); text-align: center; }
-
-@media (prefers-reduced-motion: reduce) {
-  .bar-fill, .stage-overlay { animation: none; }
-}
 
 .arena-result { flex-wrap: wrap; row-gap: 0; }
 .arena-breakdown { flex-basis: 100%; text-align: center; font-size: 0.78rem; color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -1084,3 +748,18 @@ html.locked, html.locked body {
 /* 7 columns when there's a decimal point key: 1-7 / 8 9 0 . ⌫ OK (wide) */
 .kp-grid-dec { grid-template-columns: repeat(7, 1fr); }
 .kp-grid-dec .kp-ok { grid-column: span 2; }
+
+/* Reduce motion: nothing moves. Bars show their full value at once; presses keep a cue. */
+@media (prefers-reduced-motion: reduce) {
+  .bar-fill.grow {
+    animation: none;
+  }
+
+  .submit:active:not(:disabled),
+  .archive-browse:active:not(:disabled),
+  .arena-close:active:not(:disabled),
+  .ctl-btn:active:not(:disabled) {
+    transform: none;
+    opacity: 0.85;
+  }
+}

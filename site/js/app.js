@@ -29,7 +29,20 @@ function el(tag, props = {}, ...children) {
   return n;
 }
 const show = (id, on = true) => { $(id).hidden = !on; };
+// jacob.gg motion (kit/jgg.js, loaded with defer, so it may be missing): every call has a plain fallback.
+const motion = () => window.JGG?.motion;
+
+/** Show #intro or #done. A change of phase after the first paint enters (JGG.motion.swap: old goes at once, new enters in 220 ms). */
+function phase(id) {
+  const to = $(id), from = $(id === 'intro' ? 'done' : 'intro');
+  if (!to.hidden && from.hidden) return;
+  const m = motion();
+  if (m && !from.hidden && booted) m.swap(from, to);
+  else { from.hidden = true; to.hidden = false; }
+}
+let booted = false;
 const pad = (n) => String(n).padStart(2, '0');
+const short = (msg) => (String(msg).length > 140 ? `${String(msg).slice(0, 139)}…` : String(msg)); // server text in the UI
 const total = (rounds) => round2(rounds.reduce((a, r) => a + (r?.points || 0), 0));
 
 function tickCountdown() {
@@ -56,12 +69,13 @@ function submit(day, round, answer, ms) {
   if (!api.enabled()) return;
   api.submitRound({ day, round, answer, ms, name: api.savedName() })
     .then(() => renderBoard())
-    .catch((e) => { $('board-note').textContent = `Couldn't save to the leaderboard: ${e.message}`; show('board-note', true); });
+    .catch((e) => { $('board-note').textContent = `Couldn't save to the leaderboard: ${short(e.message)}`; show('board-note', true); });
 }
 
 // --- views ----------------------------------------------------------------------------------------
 
-function render() {
+/** reveal: the day was just finished, so the score counts up and the bars grow (never on a reload or re-render). */
+function render({ reveal = false } = {}) {
   const { day, late } = mode;
   settleAbandoned(day, late);
   const plan = dayPlan(day);
@@ -71,11 +85,10 @@ function render() {
   else $('level').textContent = `${WEEKDAYS[w]} · ${LEVELS[w]}`;
   const n = store.doneCount(day, late);
   if (n >= TASKS_PER_DAY) {
-    show('intro', false);
-    renderDone();
+    phase('done');
+    renderDone(reveal);
   } else {
-    show('done', false);
-    show('intro', true);
+    phase('intro');
     $('today-tasks').replaceChildren(...plan.tasks.map((t, i) => el('li', { class: `chip${i < n ? ' done' : ''}${t.illusion ? ' special' : ''}` },
       `${TASKS[t.type].emoji} ${TASKS[t.type].name}${t.illusion ? ' ✨' : ''}`)));
     show('special-note', plan.tasks.some((t) => t.illusion));
@@ -94,10 +107,10 @@ async function play() {
   const plan = dayPlan(day);
   const arena = new Arena();
   playing = true;
-  arena.open();
+  const first = store.doneCount(day, late);
+  arena.open({ enter: first === 0 }); // only when the countdown follows, so the entrance never overlaps a task
   try {
     const scores = store.progress(day, late).rounds.map((r) => r?.points);
-    let first = store.doneCount(day, late);
     if (first === 0) { arena.setPips(Array(TASKS_PER_DAY).fill(undefined), -1); await arena.countdown(); }
     for (let i = first; i < TASKS_PER_DAY; i++) {
       const task = plan.tasks[i];
@@ -114,22 +127,28 @@ async function play() {
     arena.close();
     playing = false;
   }
-  render();
+  render({ reveal: store.doneCount(day, late) >= TASKS_PER_DAY });
   $('card').scrollIntoView({ block: 'start' });
 }
 
-function renderDone() {
+function renderDone(reveal) {
   const { day, late } = mode;
   const rounds = store.progress(day, late).rounds;
-  show('done', true);
   $('daily-score-caption').textContent = late ? `Your replay of ${day}` : "Today's score";
-  $('daily-score').textContent = fmt2(total(rounds));
+  // Counts up once, straight after the last task (a tap skips it). Share and the board never wait for it.
+  const score = $('daily-score'), m = motion();
+  score._jggSkip?.(); // a re-render ends a running count-up first
+  if (reveal && m) m.settle(score, total(rounds), { format: fmt2 });
+  else score.textContent = fmt2(total(rounds));
   $('out-of').textContent = `out of ${MAX_TOTAL}`;
-  $('bars').replaceChildren(...rounds.map((r) => {
-    const t = TASKS[r.type];
+  $('bars').replaceChildren(...rounds.map((r, i) => {
+    const t = TASKS[r.type], label = `${t.emoji} ${t.name}`;
     return el('li', { class: 'bar-row' },
-      el('span', { class: 'bar-label', text: `${t.emoji} ${t.name}` }),
-      el('span', { class: 'bar-track' }, el('span', { class: `bar-fill ${r.points >= 60 ? 'good' : r.points >= 30 ? 'ok' : 'bad'}`, style: `width:${r.points}%` })),
+      el('span', { class: 'bar-label', text: label, title: label }),
+      el('span', { class: 'bar-track' }, el('span', {
+        class: `bar-fill ${r.points >= 60 ? 'good' : r.points >= 30 ? 'ok' : 'bad'}${reveal ? ' grow' : ''}`,
+        style: `width:${r.points}%;--jgg-i:${i}`,
+      })),
       el('span', { class: 'bar-score', text: r.abandoned ? '0 (left)' : fmt2(r.points) }));
   }));
   show('share-done', false);
@@ -167,7 +186,7 @@ async function practice() {
   let stopped = false;
   const arena = new Arena({ closable: true, onClose: () => { stopped = true; playing = false; } });
   playing = true;
-  arena.open();
+  arena.open(); // no entrance: a practice task starts at once, and stimulus timing starts with it
   const done = [];
   try {
     while (!stopped) {
@@ -194,7 +213,7 @@ async function renderBoard() {
   $('board-title').textContent = late ? `Played later: ${day}` : "Today's leaderboard";
   let b;
   try { b = await api.board(day, late); }
-  catch (e) { $('board-note').textContent = `Leaderboard unavailable: ${e.message}`; show('board-note', true); return; }
+  catch (e) { $('board-note').textContent = `Leaderboard unavailable: ${short(e.message)}`; show('board-note', true); return; }
   show('board-note', false);
   const plan = dayPlan(day);
   $('players').textContent = b.players ? `${b.players} player${b.players === 1 ? '' : 's'}` : '';
@@ -204,9 +223,9 @@ async function renderBoard() {
     : el('li', { class: `row${r.you ? ' me' : ''}` },
       el('span', { class: 'row-rank', text: `${r.rank}` }),
       el('div', { class: 'row-main' },
-        el('div', { class: 'row-name', text: r.name }),
-        el('div', { class: 'row-sub', title: r.rounds.map((p, i) => `${TASKS[plan.tasks[i].type].name} ${fmt2(p)}`).join(', ') },
-          el('span', { class: 'row-emoji', text: r.rounds.map(scoreBlock).join('') }),
+        el('div', { class: 'row-name', text: r.name || '', title: r.name || '', dir: 'auto' }),
+        el('div', { class: 'row-sub', title: (r.rounds || []).map((p, i) => `${TASKS[plan.tasks[i].type].name} ${fmt2(p)}`).join(', ') },
+          el('span', { class: 'row-emoji', text: (r.rounds || []).map(scoreBlock).join('') }),
           r.played < TASKS_PER_DAY ? ` · ${r.played}/${TASKS_PER_DAY} tasks` : '')),
       el('span', { class: 'row-score', text: fmt2(r.total) }))));
   show('board-empty', !b.top.length);
@@ -232,14 +251,16 @@ async function browseArchive() {
         s?.players ? `${s.players} played on the day, best ${fmt2(s.top)}` : 'Nobody played on the day',
         mine !== null ? `you: ${fmt2(mine)}` : null].filter(Boolean).join(' · ') })));
   }) : [el('li', { class: 'archive-list-empty', text: 'No past days yet. Perceptle started today.' })]));
-  list.hidden = false;
+  const m = motion();
+  if (m) m.enter(list); else list.hidden = false;
 }
 
 function openArchive(d) {
   mode = store.doneCount(d, false) >= TASKS_PER_DAY ? { day: d, late: false } : { day: d, late: true };
   $('archive-list').hidden = true;
   render();
-  $('card').scrollIntoView({ block: 'start', behavior: 'smooth' });
+  const m = motion();
+  if (m) m.scroll($('card'), { block: 'start' }); else $('card').scrollIntoView({ block: 'start' });
 }
 
 // --- boot -----------------------------------------------------------------------------------------
@@ -262,6 +283,7 @@ $('practice-type').append(...Object.values(TASKS).map((t) => el('option', { valu
   const q = new URLSearchParams(location.search).get('day');
   if (q && q >= EPOCH && q < todayKey()) openArchive(q);
   else render();
+  booted = true;
   tickCountdown();
   setInterval(tickCountdown, 1000);
 })();

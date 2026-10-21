@@ -73,10 +73,14 @@ function drawLegend(s, p, L) {
   s.text(0.5, 0.6, `What % were ${categoryName(p)}?`, { size: 0.05 });
 }
 
+// The dot layout is worked out once per task: run() and reveal() share it (it took a long frame to rebuild).
+const layouts = new WeakMap();
+const layoutOf = (p) => { let L = layouts.get(p); if (!L) layouts.set(p, (L = TASKS.count.layout(p))); return L; };
+
 const count = {
   async run({ stage, controls, task, prompt }) {
     const p = task.params;
-    const L = TASKS.count.layout(p);
+    const L = layoutOf(p);
     stage.draw((s) => drawDots(s, L));
     let hidden = false;
     const hide = () => { if (!hidden) { hidden = true; stage.draw((s) => s.text(0.5, 0.5, '?', { size: 0.22, fill: s.c.faint, halo: false })); } };
@@ -90,14 +94,17 @@ const count = {
   },
   reveal({ stage, task }) {
     const p = task.params;
-    const L = TASKS.count.layout(p);
+    const L = layoutOf(p);
     // count them off, left to right, with a running total; then ring the asked-about kind
     const order = L.dots.map((d, i) => [d.x + d.y * 0.15, i]).sort((a, b) => a[0] - b[0]).map(([, i]) => i);
     const sorted = { dots: order.map((i) => L.dots[i]), links: [] };
     return stage.animate(Math.min(2600, 900 + p.n * 6), (s, t, raw) => {
       const k = Math.round(raw * p.n);
-      drawDots(s, sorted, { dim: true });
-      drawDots(s, sorted, { upTo: k });
+      s.layer('dim', () => drawDots(s, sorted, { dim: true })); // static: drawn once, copied in each frame
+      s.layer('lit', () => {}, (Ly) => { // only the dots counted since the last frame are drawn
+        const from = Ly.n || 0;
+        if (k > from) { drawDots(s, { dots: sorted.dots.slice(from, k), links: [] }); Ly.n = k; }
+      });
       if (raw >= 1) {
         for (const d of L.dots) if (d.cat === 0) s.circle(d.x, d.y, d.r * 1.45 + 0.004, { stroke: s.c.good, width: 0.003 });
         s.text(0.5, 0.08, `${p.n} · ${Math.round(p.pct * 10) / 10}% ${categoryName(p)}`, { size: 0.06 });
